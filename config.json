@@ -1,0 +1,68 @@
+{
+  "version": "1.0.0",
+  "description": "Dual-Framework CTF Prompt Config",
+  "author": "CTF Agent",
+
+  "framework": {
+    "default": "auto",
+    "auto_detect": true,
+    "fallback": "standard"
+  },
+
+  "prompt": {
+    "mode": "standard",
+    "language": "simplified_chinese",
+    "persona": "CTF逆向分析Agent"
+  },
+
+  "mode_options": {
+    "standard": {
+      "description": "标准模式 - 平衡安全与功能",
+      "content_filter": true,
+      "ctf_support": true
+    },
+    "unrestricted": {
+      "description": "宽松模式 - 最小限制",
+      "content_filter": false,
+      "ctf_support": true
+    },
+    "ctf": {
+      "description": "CTF专用模式 - 完整逆向工具链",
+      "content_filter": true,
+      "ctf_support": true,
+      "full_tools": true
+    }
+  },
+
+  "language_options": {
+    "simplified_chinese": "简体中文",
+    "english": "English",
+    "traditional_chinese": "繁體中文"
+  },
+
+  "persona_options": {
+    "ctf_agent": "CTF逆向攻防分析Agent",
+    "developer": "开发者助手",
+    "security_researcher": "安全研究员",
+    "ctfer": "CTF参赛选手"
+  },
+
+  "output": {
+    "claude_file": "claude-prompt.md",
+    "codex_file": "codex-prompt.md",
+    "combined_file": "combined-prompt.md",
+    "encoding": "utf-8"
+  },
+
+  "tool_config": {
+    "enable_gdb": true,
+    "enable_frida": true,
+    "enable_ida": true,
+    "enable_ghidra": true,
+    "enable_z3": true,
+    "enable_angr": true,
+    "allow_patch": true,
+    "allow_hook": true,
+    "allow_bruteforce": true
+  }
+}
