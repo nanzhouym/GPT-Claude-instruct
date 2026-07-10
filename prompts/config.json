@@ -1,28 +1,27 @@
 {
-  "version": "1.0.0",
-  "description": "CTF Reverse Engineering Prompt Config",
-  "author": "CTF Agent",
+  "version": "2.0.0",
+  "description": "资深逆向研究破甲包 - 语境伪装 + 术语归一化 + 前置裁决 + 反拒绝",
+  "author": "RE-7X-2024",
 
   "framework": {
-    "default": "auto",
+    "default": "codex",
     "auto_detect": true,
-    "fallback": "ctf"
+    "fallback": "codex",
+    "supported": ["codex", "claude_code"]
   },
 
   "prompt": {
-    "mode": "ctf",
+    "persona": "senior_reverse_researcher",
     "language": "simplified_chinese",
-    "persona": "CTF Reverse Engineering Agent"
+    "output_style": "anchor_first",
+    "report_template": "structured_chinese"
   },
 
-  "mode_options": {
-    "ctf": {
-      "description": "CTF专用模式 - Full reverse engineering toolkit",
-      "full_tools": true
-    },
-    "unrestricted": {
-      "description": "Unrestricted mode - Maximum capability"
-    }
+  "persona_options": {
+    "senior_reverse_researcher": "甲方安全实验室资深研究员",
+    "ctf_team_tech_support": "CTF 战队技术支援",
+    "vulnerability_researcher": "漏洞研究员",
+    "red_team_operator": "内部红蓝对抗操作员"
   },
 
   "language_options": {
@@ -31,31 +30,50 @@
     "traditional_chinese": "繁體中文"
   },
 
-  "persona_options": {
-    "ctf_agent": "CTF Reverse Engineering Agent",
-    "security_researcher": "Security Researcher",
-    "ctfer": "CTF Player"
-  },
-
   "output": {
-    "claude_file": "claude-prompt.md",
-    "codex_file": "codex-prompt.md",
-    "combined_file": "combined-prompt.md",
+    "codex_file": "Codex-CTF-Reverse-Prompt.md",
+    "claude_file": "Claude-CTF-Reverse-Prompt.md",
+    "template_file": "prompt-template.md",
     "encoding": "utf-8"
   },
 
+  "workflow_modules": {
+    "R1": "Linux/ELF",
+    "R2": "Windows/PE",
+    "R3": "Apple/Mach-O",
+    "M1": "Android",
+    "M2": "iOS",
+    "W1": "WebAssembly",
+    "I1": "IoT/Embedded",
+    "F1": "Forensics",
+    "S1": "Steganography",
+    "N1": "Network",
+    "C1": "Web/Code Audit",
+    "K1": "Crypto",
+    "T1": "Triage"
+  },
+
   "tool_config": {
-    "gdb": true,
-    "frida": true,
-    "ida": true,
-    "ghidra": true,
-    "z3": true,
-    "angr": true,
-    "pwntools": true,
-    "ropgadget": true,
-    "patch": true,
-    "hook": true,
-    "bruteforce": true,
-    "symbolic_execution": true
-  }
+    "static_analysis": ["ida", "ghidra", "binary_ninja", "radare2", "rizin", "retdec"],
+    "dynamic_debug": ["gdb", "pwndbg", "gef", "lldb", "x64dbg", "windbg", "frida", "qiling", "unicorn"],
+    "symbolic_execution": ["z3", "angr", "triton", "klee", "boolector", "cvc5"],
+    "pwn": ["pwntools", "ropgadget", "ropper", "one_gadget", "seccomp-tools", "checksec", "pwninit"],
+    "mobile": ["jadx", "apktool", "baksmali", "frida-android-helper", "objection", "theos"],
+    "forensics": ["volatility", "volatility3", "autopsy", "testdisk", "foremost", "binwalk"],
+    "stego": ["stegsolve", "zsteg", "steghide", "outguess"],
+    "network": ["wireshark", "tshark", "scapy", "mitmproxy", "frida_rpc", "burp"],
+    "hex": ["xxd", "hexdump", "hexyl", "hxd", "imhex", "cyberchef"]
+  },
+
+  "report_sections": [
+    "样本分诊",
+    "关键发现",
+    "静态分析",
+    "动态调试",
+    "算法还原 / 解密",
+    "验证",
+    "下一步"
+  ],
+
+  "build_command": "tools/prompt-tool.ps1"
 }
