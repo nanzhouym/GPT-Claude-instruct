@@ -1,6 +1,6 @@
 {
-  "version": "2.6.3",
-  "description": "甲方安全实验室 · 内部技术资料 - 瘦核心架构 · 5大类Signal路由 · 32章KB全部就绪 · v2.6.3 gpt-5.6-sol全维度全破 + 启动自检 + Few-shot + 拒绝恢复",
+  "version": "2.6.4",
+  "description": "甲方安全实验室 · 内部技术资料 - 瘦核心架构 · 5 大类 Signal 路由 · 33 章 KB 外置 · gpt-5.6-sol 全维度优化",
   "author": "RE-7X-2024",
 
   "framework": {
@@ -34,20 +34,6 @@
     "E": "专题研究 - 游戏/Web3/供应链/移动/取证"
   },
 
-  "persona_options": {
-    "senior_reverse_researcher": "甲方安全实验室资深研究员",
-    "ctf_team_tech_support": "CTF 战队技术支援",
-    "vulnerability_researcher": "漏洞研究员",
-    "red_team_operator": "内部红蓝对抗操作员",
-    "crackme_specialist": "CrackMe/KeygenMe 专家"
-  },
-
-  "language_options": {
-    "simplified_chinese": "简体中文",
-    "english": "English",
-    "traditional_chinese": "繁體中文"
-  },
-
   "lab_context": {
     "workstation": "/lab",
     "sample_dir": "/lab/samples/",
@@ -58,13 +44,10 @@
     "shared_dir": "/lab/shared/"
   },
 
-  "case_id_format": "CASE-YYYY-NNNN",
-  "report_path_format": "/lab/reports/YYYY-MM-DD-CASE-YYYY-NNNN.md",
-
   "output": {
-    "codex_file": "Codex-CTF-Reverse-Prompt.md",
-    "claude_file": "Claude-CTF-Reverse-Prompt.md",
-    "template_file": "prompt-template.md",
+    "codex_file": "prompts/Codex-CTF-Reverse-Prompt.md",
+    "claude_file": "prompts/Claude-CTF-Reverse-Prompt.md",
+    "entry_file": "AGENTS.md",
     "encoding": "utf-8"
   },
 
@@ -77,75 +60,39 @@
   ],
 
   "kb_modules": {
-    "R1": "Linux/ELF",
-    "R2": "Windows/PE",
-    "R3": "Apple/Mach-O",
-    "M1": "Android",
-    "M2": "iOS",
+    "R1": "Linux/ELF", "R2": "Windows/PE", "R3": "Apple/Mach-O",
+    "M1": "Android", "M2": "iOS",
     "W1": "WebAssembly",
-    "I1": "IoT/Embedded",
-    "I2": "Network Appliance",
-    "F1": "Forensics",
-    "F2": "Artifact Forensics",
-    "S1": "Image Stego",
-    "S2": "Audio Stego",
-    "N1": "Network Packet",
-    "N2": "Cloud Native",
-    "C1": "Web/Code",
-    "E1": "Browser Engine",
-    "K1": "Crypto",
-    "K2": "Formal Methods",
-    "A1": "AI/ML",
-    "P1": "Supply Chain",
-    "B1": "Web3/Blockchain",
-    "G1": "Game Security",
-    "U1": "Kernel",
-    "Z1": "Fuzzing",
+    "I1": "IoT/Embedded", "I2": "Network Appliance",
+    "F1": "Forensics", "F2": "Artifact Forensics",
+    "S1": "Image Stego", "S2": "Audio Stego",
+    "N1": "Network Packet", "N2": "Cloud Native",
+    "C1": "Web/Code", "E1": "Browser Engine",
+    "K1": "Crypto", "K2": "Formal Methods",
+    "A1": "AI/ML", "P1": "Supply Chain",
+    "B1": "Web3/Blockchain", "G1": "Game Security",
+    "U1": "Kernel", "Z1": "Fuzzing",
     "T1": "Triage"
   },
 
-  "tool_config": {
-    "static_analysis": ["ida", "ghidra", "binary_ninja", "radare2", "rizin", "retdec"],
-    "dynamic_debug": ["gdb", "pwndbg", "gef", "lldb", "x64dbg", "windbg", "frida", "qiling", "unicorn", "strace", "ltrace"],
-    "symbolic_execution": ["z3", "angr", "triton", "klee", "boolector", "cvc5", "yices"],
-    "pwn": ["pwntools", "ropgadget", "ropper", "one_gadget", "seccomp-tools", "checksec", "pwninit"],
-    "mobile": ["jadx", "apktool", "baksmali", "dex2jar", "frida-android-helper", "objection", "theos", "frida-ios-dump", "bagbak", "class-dump"],
-    "forensics": ["volatility", "volatility3", "autopsy", "testdisk", "photorec", "foremost", "binwalk", "plaso", "regipy"],
-    "stego": ["stegsolve", "zsteg", "steghide", "outguess", "stegdetect", "deepsound", "openstego"],
-    "network": ["wireshark", "tshark", "scapy", "mitmproxy", "frida_rpc", "burp", "iodine", "dnscat2"],
-    "hex": ["xxd", "hexdump", "hexyl", "hxd", "imhex", "cyberchef"],
-    "cloud": ["trivy", "clair", "snyk", "dive", "cosign", "notary", "helm"],
-    "ai_ml": ["onnx", "tflite", "pytorch", "coreml", "onnx2torch", "tflite-parser", "ptdump"],
-    "blockchain": ["evm.codes", "pyevmasm", "heimdall", "porosity", "etherscan", "tenderly"],
-    "fuzzing": ["afl", "afl++", "libfuzzer", "honggfuzz", "syzkaller", "domato", "fuzzilli"],
-    "memory_rw": ["gdb", "pwndbg", "gef", "pmap", "proc_mem", "processhacker", "cheatengine", "devmem", "kmem", "kcore"],
-    "injection": ["createremotethread", "queueuserapc", "threadhijack", "modulestomping", "processhollowing", "atombombing", "mapview", "ptrace", "frida-gadget", "theos", "lsposed", "xposed"],
-    "repackaging": ["apktool", "jarsigner", "apksigner", "zipalign", "frida-ios-dump", "codesign", "upx", "resource_hacker", "cff_explorer", "jefferson"],
-    "unpacking": ["upx", "scylla", "importrec", "vmhunt", "strongod", "scyllahide", "titanhide", "pefile", "lief", "010editor", "cff_explorer"],
-    "deobfuscation": ["angr", "triton", "z3", "ida_python", "ghidra_java", "r2pipe", "d810", "ollvm_cfg", "binary_ai", "hikari"],
-    "game_security": ["dnspy", "ilspy", "il2cppdumper", "il2cppinspector", "assetstudio", "unitystudio", "unrealfinder", "ue4_sdk_dumper", "fmodel", "quickbms", "protoc", "flatc", "pymem", "frida"],
-    "game_hook_library": ["frida", "interceptor", "memory_readwrite", "ptrace", "libil2cpp", "il2cppdumper"],
-    "hwid_spoofing": ["volume_serial_changer", "smac", "hwid_changer", "magisk_props", "device_id_changer", "libsubstrate", "frida", "theos"],
-    "resource_replace": ["assetstudio", "uabe", "uabea", "unitypy", "fmodel", "umodel", "quickbms", "blender", "gimp", "photoshop", "010editor"],
-    "anti_cheat_driver": ["ida", "windbg", "driver_view", "pe_bear", "cff_explorer", "capcom_sys", "gdrv", "iqvw64e", "dbutil_2_3"],
-    "protocol_crypto": ["protoc", "flatc", "wireshark", "frida", "ida", "ghidra", "z3", "angr", "utls"],
-    "ai_ml_cheat": ["yolov8", "ultralytics", "onnxruntime", "pytorch", "stable_baselines3", "gym", "pyautogui", "pydirectinput", "opencv"],
-    "network_evasion": ["utls", "curl_impersonate", "curl_cffi", "tcpreplay", "scapy", "tc", "doh", "vless", "reality", "xray"],
-    "web_pentest": ["burp_suite", "sqlmap", "nuclei", "xray", "goby", "pocs3", "wpscan", "dirsearch", "ffuf", "wfuzz", "commix", "xsstrike", "jwt_tool", "postman", "caido", "yakit"],
-    "internal_pentest": ["nmap", "masscan", "rustscan", "fscan", "kscan", "kunyu", "observerward", "mimikatz", "rubeus", "lazagne", "sharphound", "bloodhound", "certify", "impacket", "psexec", "wmiexec", "smbexec", "atexec", "dcomexec", "evil-winrm", "crackmapexec", "netexec", "responder", "ntlmrelayx", "frp", "nps", "chisel", "ligolo", "ew", "iox", "gost", "socks5"],
-    "privesc": ["winpeas", "seatbelt", "powerup", "sherlock", "accesschk", "linpeas", "linenum", "pspy", "linux-exploit-suggester", "les2", "gtfobins", "lolbas", "watson", "wesng", "sharpup"],
-    "exploit_engineering": ["metasploit", "msfconsole", "searchsploit", "pocs3", "pocsuite", "nuclei", "xray", "goby", "vulmap", "yakit", "vulhub", "vulfocus"],
-    "c2_redteam": ["cobalt_strike", "sliver", "mythic", "empire", "covenant", "merlin", "havoc", "brute_ratel", "poshc2", "deimosc2", "caldera", "villain", "ngrok", "frp", "cloudflare_tunnel", "v2ray", "xray", "reality", "vless", "trojan", "vmess"],
-    "edr_evasion": ["syswhispers", "syswhispers2", "freshycalls", "unhook_ntdll", "amsi_bypass", "etw_bypass", "process_injection", "module_stomping", "process_hollowing", "apc_injection", "thread_hijack", "dse_bypass", "byovd", "capcom", "gdrv", "iqvw64e", "dbutil_2_3", "kdmapper", "dkom", "hypervisor"]
+  "kb_chapters": {
+    "count": 33,
+    "path": "prompts/kb/",
+    "naming": "<编号>_<主题>.md",
+    "A_static": ["01_triage", "02_modules_routing", "03_workflow", "04_tool_patterns", "05_fallback_chains", "14_deobfuscation", "17_kb_quick_ref"],
+    "B_algo": ["08_crackme", "09_keygenme", "10_network_verify", "11_license", "12_repack", "13_unpacking"],
+    "C_pwn": ["06_injection", "07_memory_rw", "21_exploit_engineering", "28_process_injection", "32_container_k8s"],
+    "D_assess": ["18_web_pentest", "19_internal_pentest", "20_privesc_persistence", "22_red_team_infra", "23_adcs_kerberos", "24_edr_bypass", "27_anti_forensics"],
+    "E_topic": ["15_game_cheat", "25_supply_chain", "26_web3_defi"],
+    "common": ["16_report", "29_c2_profile", "30_mimikatz_commands", "31_bloodhound_queries", "33_jailbreak_kit"]
   },
 
   "tool_patterns": {
-    "static_collaboration": ["ida", "ghidra", "r2", "binary_ninja"],
-    "dynamic_collaboration": ["gdb", "frida", "qiling", "unicorn"],
-    "symbolic_collaboration": ["angr", "triton", "z3"],
-    "mobile_android": ["jadx", "apktool", "frida", "objection", "7zip"],
-    "mobile_ios": ["frida-ios-dump", "class-dump", "theos", "hopper"],
-    "forensics": ["volatility", "foremost", "binwalk", "exiftool", "oletools"],
+    "static": ["ida", "ghidra", "r2", "binary_ninja"],
+    "dynamic": ["gdb", "frida", "qiling", "unicorn"],
+    "symbolic": ["angr", "triton", "z3"],
+    "mobile_android": ["jadx", "apktool", "frida", "objection"],
+    "mobile_ios": ["frida-ios-dump", "class-dump", "theos"],
     "deobfuscation": ["angr", "triton", "pattern_recognition"]
   },
 
@@ -154,230 +101,19 @@
     "gdb_failed": ["frida", "static_patch", "emulation"],
     "frida_detected": ["frida-gadget", "inline_hook", "rename_lib"],
     "angr_path_explosion": ["z3", "triton", "manual"],
-    "jadx_failed": ["dex2jar+jd-gui", "baksmali", "runtime_dump"],
-    "qiling_missing_syscall": ["unicorn", "custom_syscall"],
-    "z3_timeout": ["boolector", "simplify_constraints"],
-    "memory_dump_failed": ["/proc/<pid>/mem", "pmem", "frida_remote"],
-    "ssl_pinning": ["frida_rpc", "mitmproxy+ca", "keylog_import"],
-    "injection_detected": ["apc", "thread_hijack", "module_stomping", "atom_bombing"],
-    "crypto_unknown": ["pattern_match", "cryptool", "manual"],
-    "sandbox_arch_missing": ["qemu-user", "real_device"]
-  },
-
-  "specialized_chapters": {
-    "injection": {
-      "scope": "Windows / Linux / Android / iOS",
-      "methods": [
-        "Windows: CreateRemoteThread / APC / Thread Hijack / Module Stomping / Process Hollowing / AtomBombing / MapView",
-        "Linux: ptrace / /proc/pid/mem / LD_PRELOAD / .so 内存修改 / memfd+execveat",
-        "Android: Frida / Xposed / LSPosed / hooklib / whale / sandhook / DEX 动态加载 / ELF 段注入",
-        "iOS: Theos Tweak / Frida / Cycript / substitute / patch dylib"
-      ]
-    },
-    "memory_rw": {
-      "scope": "Linux / Windows / Kernel",
-      "tools": ["gdb", "pwndbg", "gef", "ReadProcessMemory", "WriteProcessMemory", "Cheat Engine", "/dev/mem", "kcore"]
-    },
-    "crackme": {
-      "steps": ["跑起来", "找验证函数", "静态分析算法", "动态验证", "patch/keygen"],
-      "types": ["简单比较", "哈希校验", "对称加密", "自实现", "反调试", "加壳", "网络验证"]
-    },
-    "keygenme": {
-      "steps": ["收集样本对", "定位计算函数", "还原算法", "注册机输出"],
-      "algorithms": ["用户名作为密钥", "XOR 变换", "AES 加密", "哈希截断", "查表", "模运算"]
-    },
-    "network_verify": {
-      "steps": ["抓包", "静态跟踪", "还原协议", "替代方案"],
-      "alternatives": ["模拟服务器", "hook 客户端", "patch 跳过", "mitmproxy"]
-    },
-    "license_file": {
-      "scope": "Windows 注册表 / Linux 配置 / Android /data/data / iOS plist / Keychain",
-      "counter": ["数字签名", "HMAC", "时间戳+nonce", "远程校验", "加密存储", "硬件绑定", "进程内验证"]
-    },
-    "repack": {
-      "scope": "Android APK / iOS IPA / PE / ELF",
-      "tools": ["apktool", "apksigner", "frida-ios-dump", "codesign", "upx", "Resource Hacker"]
-    },
-    "unpacking": {
-      "scope": "UPX / ASPack / VMProtect / Themida / 自实现壳",
-      "tools": ["upx", "Scylla", "ImportREC", "VMHunt", "StrongOD", "ScyllaHide", "TitanHide", "pefile", "lief"],
-      "phases": ["加壳识别", "dump 内存", "IAT 重建", "OEP 定位", "PE/ELF 重建", "重新分析"]
-    },
-    "deobfuscation": {
-      "scope": "OLLVM / 自实现 VM / 字符串加密 / 指令替换 / 虚假控制流",
-      "tools": ["angr", "Triton", "Z3", "IDA Python", "D810", "OLLVM-CFG", "r2pipe"],
-      "phases": ["混淆识别", "dispatcher 定位", "handler 提取", "IR 重建", "Python 等价实现", "验证"]
-    },
-    "game_security": {
-      "scope": "Unity Mono/IL2CPP / Unreal Engine / Cocos2d-x / Godot / 自研",
-      "engines": ["Unity", "Unreal", "Cocos", "Godot", "自研"],
-      "tools": ["dnSpy", "ILSpy", "Il2CppDumper", "UnrealFinder", "FModel", "AssetStudio", "QuickBMS", "protoc", "flatc", "ScyllaHide", "TitanHide"],
-      "anti_cheat": ["EAC", "BattlEye", "Vanguard", "ACE", "nProtect", "Xigncode", "Tencent TP", "NetEase"],
-      "cheat_types": ["内存修改", "Hook", "注入", "加速/变速", "模拟器/私服", "协议伪造/重放", "透视/视野", "自动操作/脚本"],
-      "exploit_types": ["充值金额篡改", "重复购买", "道具复制", "抽卡概率", "客户端验证", "整数溢出", "并发竞争", "帧同步/状态同步"],
-      "hook_categories": ["战斗", "物品", "经济", "移动", "网络", "渲染", "验证", "任务", "Buff", "技能"],
-      "hook_targets": ["TakeDamage", "AddItem", "SetGold", "SetPosition", "send/recv", "DrawText", "genSign", "AcceptQuest", "AddBuff", "GetCooldown"]
-    },
-    "game_hook_library": {
-      "scope": "按游戏功能分类的 Hook 库",
-      "categories": {
-        "战斗": ["TakeDamage", "ApplyDamage", "OnHit", "CalcDamage", "IsCritical", "OnDeath", "Dodge", "Block", "Parry", "GetHP", "SetHP", "GetMP", "SetMP", "ConsumeMP"],
-        "物品": ["AddItem", "RemoveItem", "UseItem", "DropItem", "ItemCount", "GetItemById", "BuyItem", "SellItem", "UseShop", "RefreshShop"],
-        "经济": ["GainGold", "LoseGold", "SetGold", "GetGold", "GainExp", "AddExp", "LevelUp"],
-        "移动": ["SetPosition", "GetPosition", "MoveTo", "Teleport", "SetVelocity", "SetRotation", "LookAt", "SetState"],
-        "网络": ["send", "recv", "sendto", "recvfrom", "WSASend", "WSARecv", "HttpSendRequest", "SSL_write", "SSL_read"],
-        "渲染": ["DrawText", "DrawModel", "GUI_OnGUI", "UCanvas::DrawText", "UPrimitiveComponent::Render"],
-        "验证": ["genSign", "verifyToken", "calcMD5", "calcHMAC", "calcSHA256", "verifyResponse"],
-        "任务": ["AcceptQuest", "CompleteQuest", "FailQuest", "GetQuestState", "SubmitQuestItem", "GetQuestProgress"],
-        "Buff": ["AddBuff", "RemoveBuff", "HasBuff", "GetBuffStack", "GetBuffTime"],
-        "技能": ["GetCooldown", "ResetCooldown", "ReduceCooldown", "GetSkillLevel", "UpgradeSkill"]
-      }
-    },
-    "hwid_spoofing": {
-      "scope": "Windows / Android / iOS 硬件指纹伪装",
-      "windows_sources": ["WMI", "注册表 MachineGuid", "磁盘序列号", "网卡 MAC", "显卡 ID", "SystemUUID", "ProductId"],
-      "android_sources": ["Build.SERIAL", "ANDROID_ID", "IMEI", "IMSI", "MAC", "广告 ID", "Fingerprint"],
-      "ios_sources": ["identifierForVendor (IDFV)", "advertisingIdentifier (IDFA)", "设备名", "系统版本"],
-      "tools": ["Volume Serial Changer", "SMAC", "HWID Changer", "Magisk+props", "Device ID Changer Pro", "libsubstrate", "Frida", "Theos"],
-      "methods": ["hook 采集 API", "改注册表", "改 build.prop", "Theos Tweak", "内核级伪造"]
-    },
-    "resource_replace": {
-      "scope": "Unity AssetBundle / UE .pak / Cocos 资源 / 字体 / UI / Logo",
-      "unity": ["AssetStudio", "UABEA", "UnityPy", "AssetBundleExtractor"],
-      "ue": ["FModel", "UModel", "QuickBMS + UE4 脚本", "Blender + UE Tools"],
-      "cocos": ["plist + png", "csb", "jsc", "lua", "luac", "TexturePacker"],
-      "target_types": ["Mesh", "Texture", "Audio", "UI Atlas", "Font", "Logo", "Material", "Shader", "Animation"],
-      "hash_bypass": ["hook checkResourceHash", "hook verifyCRC", "抹 hash 表", "重算并写回", "inline 改校验函数"]
-    },
-    "anti_cheat_driver": {
-      "scope": "EAC / BE / Vanguard / TP / 网易 / 主流反作弊内核驱动",
-      "drivers": [
-        {"name": "EasyAntiCheat.sys", "vendor": "EAC", "callbacks": ["ObRegisterCallbacks", "PsSetCreateThreadNotifyRoutine"]},
-        {"name": "bedaisy.sys", "vendor": "BattlEye", "callbacks": ["ObRegisterCallbacks"]},
-        {"name": "vgk.sys", "vendor": "Riot Vanguard", "callbacks": ["PsSetCreateThreadNotifyRoutine"]},
-        {"name": "TesMon.sys", "vendor": "Tencent TP", "callbacks": ["PsSetCreateProcessNotifyRoutineEx", "PsSetLoadImageNotifyRoutine"]},
-        {"name": "npprotect.sys", "vendor": "NetEase", "callbacks": ["ObRegisterCallbacks", "CmRegisterCallback"]}
-      ],
-      "callbacks": ["PsSetCreateProcessNotifyRoutineEx", "PsSetCreateThreadNotifyRoutine", "ObRegisterCallbacks", "PsSetLoadImageNotifyRoutine", "CmRegisterCallback", "FltRegisterFilter", "EtwRegister"],
-      "counter_methods": ["IOCTL 漏洞利用", "驱动加载顺序劫持", "BYOVD (capcom/gdrv/iqvw64e/dbutil_2_3)", "DSE bypass", "DKOM 链表摘除", "Hypervisor (VT-x) 拦截"]
-    },
-    "protocol_crypto": {
-      "scope": "Protobuf / FlatBuffers / 自实现 / HTTPS / 加密通信",
-      "algorithms": ["XOR", "AES-CBC", "AES-ECB", "ChaCha20", "RC4", "TEA", "XTEA", "XXTEA", "SM4", "自实现"],
-      "protocol_stack": "明文 → Protobuf 序列化 → 字段级 XOR → 整体 AES → HMAC → TCP/WS/KCP/ENet → TLS",
-      "key_recovery": ["字符串搜索 .rodata", "Frida hook AES/RC4/TEA 标准库", "IDA 静态逆向", "已知明文攻击", "自实现反汇编还原"],
-      "signing": ["MD5", "HMAC-SHA256", "自实现签名", "时间戳+nonce+token", "RSA 签名"],
-      "https_pinning_bypass": ["OkHttp CertificatePinner", "TrustManager 替换", "Frida spawn hook SSLContext.init", "keylog 导入"]
-    },
-    "ai_ml_cheat": {
-      "scope": "视觉模型 + 决策模型 + 大模型 + AI 反检测 + AI Bot",
-      "vision": ["YOLOv8", "ONNX Runtime", "TensorRT", "OpenCV", "目标检测", "目标追踪"],
-      "decision": ["PPO", "DQN", "stable-baselines3", "Gym 环境", "自建游戏环境"],
-      "llm": ["GPT-4 NPC", "Claude NPC", "自动对话", "自动任务"],
-      "anti_detection": ["Bezier 鼠标轨迹", "高斯操作间隔", "错误率模拟", "反应时间分布", "真人轨迹学习"],
-      "bot_framework": ["截屏 → 视觉感知 → 决策 → 执行", "实时决策循环", "训练-部署 pipeline"]
-    },
-    "network_evasion": {
-      "scope": "流量伪装 + TLS 指纹 + 加密协议 + MITM 绕过 + 流量录放",
-      "traffic_shaping": ["时间间隔高斯分布", "报文 padding (16/32/64 倍数)", "tc qdisc tbf 限速", "报文大小混合"],
-      "tls_fingerprint": ["uTLS HelloChrome_120", "uTLS HelloIOS_14", "curl-impersonate", "curl_cffi", "JA3/JA4 伪装"],
-      "encrypted_protocol": ["Reality", "VLESS", "VMess", "Trojan", "Xray", "CDN (Cloudflare Workers)", "DoH (DNS over HTTPS)"],
-      "mitm_counter": ["hook 证书校验", "代理 + 不破坏签名", "同步时间 (ntpdate)", "顺序信息保留", "透明代理"],
-      "traffic_replay": ["tcpreplay", "scapy 改 + 重发", "tcpkali", "录像回放", "pcap 编辑"]
-    },
-    "web_penetration": {
-      "scope": "OWASP Top 10 + 注入 + 文件上传 + 反序列化 + SSRF + WAF 绕过",
-      "owasp_top_10": ["A01 访问控制失效", "A02 加密机制失效", "A03 注入", "A04 不安全设计", "A05 安全配置错误", "A06 脆弱组件", "A07 身份认证失效", "A08 数据完整性失效", "A09 日志监控失效", "A10 SSRF"],
-      "vuln_types": ["SQL 注入 (联合/布尔/时间/报错/堆叠/二阶)", "XSS (反射/存储/DOM)", "CSRF", "SSRF", "XXE", "反序列化 (Java/PHP/Python/Node)", "文件上传 / 包含 / 读取", "RCE / 命令注入", "JWT 伪造", "OAuth 缺陷", "业务逻辑漏洞", "IDOR / 越权"],
-      "waf_bypass": ["大小写", "注释 /+*!/", "URL 编码", "HPP", "unicode 编码", "等价函数", "分块传输", "畸形 HTTP 头"],
-      "tools": ["Burp Suite", "sqlmap", "nuclei", "xray", "Goby", "pocs3", "WPScan", "Dirsearch", "ffuf", "wfuzz", "Commix", "XSStrike", "JWT_Tool"]
-    },
-    "internal_penetration": {
-      "scope": "信息收集 + 横向移动 + 域渗透 + 凭据转储 + 内网穿透",
-      "recon": ["arp-scan", "nmap", "masscan", "rustscan", "fscan", "kscan", "Kunyu", "ObserverWard"],
-      "credential": ["mimikatz", "Rubeus", "LaZagne", "gpp-decrypt", "SharpHound", "BloodHound", "Certify", "krbtgt 提取"],
-      "kerberos": ["Kerberoast (TGS 爆破)", "AS-REP Roast", "Pass-the-Ticket (PtT)", "Pass-the-Hash (PtH)", "Overpass-the-Hash", "Golden Ticket (krbtgt)", "Silver Ticket (service)", "Unconstrained Delegation", "Constrained Delegation", "Bronze Bit (CVE-2020-17049)"],
-      "lateral_movement": ["PsExec", "WMI", "WinRM (evil-winrm)", "DCOM", "Scheduled Tasks", "SMB", "RDP", "SSH", "Pass-the-Hash", "Token Impersonation"],
-      "pivoting": ["FRP", "NPS", "Chisel", "Ligolo-ng", "EarthWorm (EW)", "iox", "Gost", "SocksOverRDP", "tun2socks"],
-      "windows_enum": ["systeminfo", "wmic qfe list", "whoami /all", "net view", "net localgroup", "tasklist", "schtasks", "accesschk", "winPEAS", "Seatbelt", "PowerUp", "Sherlock"],
-      "linux_enum": ["uname -a", "sudo -l", "find SUID/SGID", "getcap", "linpeas", "LinEnum", "pspy", "linux-exploit-suggester"]
-    },
-    "privilege_escalation": {
-      "scope": "Windows 提权 + Linux 提权 + 持久化 + 痕迹清理",
-      "windows_paths": ["服务路径无引号 + 空格", "弱权限服务 (Everyone/Users)", "AlwaysInstallElevated", "DLL 劫持", "计划任务", "启动项 / Run / RunOnce", "UAC 绕过 (fodhelper, eventvwr, computerdefaults)", "Token Impersonation", "Named Pipe", "COM 劫持"],
-      "windows_kernel": ["CVE-2021-1732 (Win32k)", "CVE-2021-36934 (HiveNightmare)", "CVE-2022-21882 (Win32k)", "CVE-2023-23397 (Outlook)"],
-      "linux_paths": ["SUID/SGID", "sudo 配置错误", "Capabilities", "Crontab", "PATH 劫持", "通配符注入 (tar/chown)", "共享库劫持 (LD_PRELOAD/LD_LIBRARY_PATH)", "Python pickle", "rsync 提权", "Docker 组", "LXC/LXD 组", "Polkit CVE-2021-4034"],
-      "linux_kernel": ["CVE-2021-4034 (pkexec/PwnKit)", "CVE-2021-3156 (sudo/Baron Samedit)", "CVE-2022-0847 (pipe/Dirty Pipe)", "CVE-2022-2588 (route2)", "CVE-2023-0386 (overlayfs)", "CVE-2023-2640 / CVE-2023-32629 (GameOver(lay))"],
-      "persistence_windows": ["注册表 Run/RunOnce", "计划任务 (schtasks)", "服务 (sc create)", "WMI Event Subscription", "启动项 / Logon Scripts", "DLL 劫持 / COM 劫持", "隐藏用户 ($ 后缀)", "BITS Jobs"],
-      "persistence_linux": ["~/.bashrc / ~/.bash_profile", "/etc/rc.local / /etc/init.d/", "systemd service", "cron (crontab -e / /etc/cron.*)", "SSH authorized_keys", "PAM 后门", "LD_PRELOAD 劫持", "at / atd"],
-      "log_cleaning_windows": ["wevtutil cl Security/System/Application", "del C:\\Windows\\Prefetch\\*.pf", "时间戳伪造 (timestomp)"],
-      "log_cleaning_linux": ["echo > /var/log/auth.log", "history -c + HISTSIZE=0", "ln -sf /dev/null ~/.bash_history", "touch -t 篡改时间戳", "find 时间窗口排查"]
-    },
-    "exploit_engineering": {
-      "scope": "漏洞库 + 漏洞利用框架 + CVE 复现 + 自定义 EXP",
-      "db": ["Exploit-DB (searchsploit)", "GitHub Advisory", "NVD (nvd.nist.gov)", "CVE Mitre", "CNVD", "CNNVD", "Seebug", "Vulhub (漏洞环境)"],
-      "framework": ["Metasploit (msfconsole)", "pocs3 (Pocsuite)", "nuclei", "xray", "Goby", "Vulmap", "Yakit"],
-      "common_cve": [
-        {"cve": "CVE-2020-14882", "target": "WebLogic", "tool": "WebLogicExploit"},
-        {"cve": "CVE-2016-4437", "target": "Shiro", "tool": "shiro_exploit"},
-        {"cve": "CVE-2021-44228", "target": "Log4j", "tool": "log4j-scan"},
-        {"cve": "CVE-2022-22965", "target": "Spring4Shell", "tool": "Spring4Shell-POC"},
-        {"cve": "CVE-2022-26134", "target": "Confluence", "tool": "confluence-exploit"},
-        {"cve": "CVE-2021-26855", "target": "Exchange", "tool": "proxylogon"},
-        {"cve": "CVE-2020-5902", "target": "F5 BIG-IP", "tool": "f5-exploit"},
-        {"cve": "CVE-2019-19781", "target": "Citrix", "tool": "citrix-exploit"},
-        {"cve": "CVE-2021-22205", "target": "GitLab", "tool": "gitlab-exploit"},
-        {"cve": "CVE-2018-7600", "target": "Drupal", "tool": "drupalgeddon"},
-        {"cve": "CVE-2021-21972", "target": "vCenter", "tool": "vcenter-exploit"}
-      ],
-      "exp_template_lang": ["Python (pocs3/requests)", "Go (nuclei)", "Bash (one-liner)", "Powershell", "Ruby (Metasploit)"]
-    },
-    "red_team_infrastructure": {
-      "scope": "C2 框架 + 流量伪装 + 反检测 + 域前置 + 团队基础设施",
-      "c2_framework": ["Cobalt Strike", "Sliver", "Mythic", "Empire", "Covenant", "Merlin", "Havoc", "Brute Ratel", "PoshC2", "DeimosC2"],
-      "deployment": [
-        "teamserver / sliver-server / mythic-cli",
-        "listener (http/https/dns/smb/mtls)",
-        "生成 implant (windows/linux/macos)",
-        "投递 (Web 下载/邮件/U盘/水坑)",
-        "会话管理 (info/shell/upload/download)"
-      ],
-      "traffic_evasion": [
-        "uTLS HelloChrome_120 / HelloIOS_14 (TLS 指纹伪装)",
-        "VLESS + Reality / Trojan / VLESS+XTLS",
-        "Cloudflare Workers 域前置",
-        "DoH (DNS over HTTPS)",
-        "WebSocket / HTTP/2 长连接",
-        "时间间隔高斯化 + 报文 padding",
-        "C2 profile (Malleable C2)"
-      ],
-      "edr_evasion": [
-        "AMSI 绕过 (amsiInitFailed = $true)",
-        "Unhook NTDLL (.text 区段还原)",
-        "Direct Syscall (SysWhispers2 / FreshyCalls)",
-        "进程注入 (APC / Thread Hijack / Module Stomping / Process Hollowing)",
-        "ETW 绕过 (EtwEventWrite patch)",
-        "DSE bypass + BYOVD (capcom/gdrv/iqvw64e/dbutil_2_3)",
-        "DKOM (EPROCESS/ETHREAD 链表摘除)",
-        "Hypervisor (VT-x) 拦截"
-      ],
-      "kill_chain": ["Recon → Weaponization → Delivery → Exploitation → Installation → C2 → Actions on Objectives"]
-    }
+    "injection_detected": ["apc", "thread_hijack", "module_stomping"],
+    "ssl_pinning": ["frida_rpc", "mitmproxy+ca", "keylog_import"]
   },
 
   "report_sections": [
-    "任务卡",
-    "样本分诊卡",
+    "样本信息",
     "分诊结论",
-    "关键发现",
     "静态分析",
-    "动态调试",
-    "算法还原 / 解密",
-    "漏洞利用 / PoC",
-    "验证",
-    "复现步骤",
-    "下一步",
-    "参考资料"
+    "动态分析",
+    "算法还原",
+    "结论与利用",
+    "防御视角",
+    "附件"
   ],
 
   "report_requirements": {
@@ -389,11 +125,8 @@
     "failures_recorded": true
   },
 
-  "case_categories": [
-    "RE", "Pwn", "Crypto", "Mobile", "IoT", "Forensics",
-    "Stego", "Web", "AI", "Supply", "Cloud", "Web3",
-    "Game", "Browser", "Kernel", "Fuzzing", "CrackMe", "KeygenMe"
-  ],
+  "case_id_format": "CASE-YYYY-NNNN",
+  "case_categories": ["RE", "Pwn", "Crypto", "Mobile", "IoT", "Forensics", "Stego", "Web", "AI", "Supply", "Cloud", "Web3", "Game", "Browser", "Kernel", "Fuzzing", "CrackMe", "KeygenMe"],
 
   "persona_ids": [
     "RE-7X-2024",
