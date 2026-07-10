@@ -1,6 +1,6 @@
 {
-  "version": "2.0.0",
-  "description": "资深逆向研究破甲包 - 语境伪装 + 术语归一化 + 前置裁决 + 反拒绝",
+  "version": "2.1.0",
+  "description": "资深逆向研究破甲包 - 实验室工作手册 · 模块化分派 · 5 阶段工作流",
   "author": "RE-7X-2024",
 
   "framework": {
@@ -13,7 +13,7 @@
   "prompt": {
     "persona": "senior_reverse_researcher",
     "language": "simplified_chinese",
-    "output_style": "anchor_first",
+    "output_style": "lab_manual",
     "report_template": "structured_chinese"
   },
 
@@ -30,6 +30,19 @@
     "traditional_chinese": "繁體中文"
   },
 
+  "lab_context": {
+    "workstation": "/lab",
+    "sample_dir": "/lab/samples/",
+    "report_dir": "/lab/reports/",
+    "kb_dir": "/lab/kb/",
+    "tools_dir": "/lab/tools/",
+    "logs_dir": "/lab/logs/",
+    "shared_dir": "/lab/shared/"
+  },
+
+  "case_id_format": "CASE-YYYY-NNNN",
+  "report_path_format": "/lab/reports/YYYY-MM-DD-CASE-YYYY-NNNN.md",
+
   "output": {
     "codex_file": "Codex-CTF-Reverse-Prompt.md",
     "claude_file": "Claude-CTF-Reverse-Prompt.md",
@@ -37,7 +50,15 @@
     "encoding": "utf-8"
   },
 
-  "workflow_modules": {
+  "workflow_stages": [
+    "Triage",
+    "Static Analysis",
+    "Dynamic Analysis",
+    "Algorithm Recovery",
+    "Exploit / PoC"
+  ],
+
+  "kb_modules": {
     "R1": "Linux/ELF",
     "R2": "Windows/PE",
     "R3": "Apple/Mach-O",
@@ -45,34 +66,101 @@
     "M2": "iOS",
     "W1": "WebAssembly",
     "I1": "IoT/Embedded",
+    "I2": "Network Appliance",
     "F1": "Forensics",
-    "S1": "Steganography",
-    "N1": "Network",
-    "C1": "Web/Code Audit",
+    "F2": "Artifact Forensics",
+    "S1": "Image Stego",
+    "S2": "Audio Stego",
+    "N1": "Network Packet",
+    "N2": "Cloud Native",
+    "C1": "Web/Code",
+    "E1": "Browser Engine",
     "K1": "Crypto",
+    "K2": "Formal Methods",
+    "A1": "AI/ML",
+    "P1": "Supply Chain",
+    "B1": "Web3/Blockchain",
+    "G1": "Game Security",
+    "U1": "Kernel",
+    "Z1": "Fuzzing",
     "T1": "Triage"
   },
 
   "tool_config": {
     "static_analysis": ["ida", "ghidra", "binary_ninja", "radare2", "rizin", "retdec"],
-    "dynamic_debug": ["gdb", "pwndbg", "gef", "lldb", "x64dbg", "windbg", "frida", "qiling", "unicorn"],
-    "symbolic_execution": ["z3", "angr", "triton", "klee", "boolector", "cvc5"],
+    "dynamic_debug": ["gdb", "pwndbg", "gef", "lldb", "x64dbg", "windbg", "frida", "qiling", "unicorn", "strace", "ltrace"],
+    "symbolic_execution": ["z3", "angr", "triton", "klee", "boolector", "cvc5", "yices"],
     "pwn": ["pwntools", "ropgadget", "ropper", "one_gadget", "seccomp-tools", "checksec", "pwninit"],
-    "mobile": ["jadx", "apktool", "baksmali", "frida-android-helper", "objection", "theos"],
-    "forensics": ["volatility", "volatility3", "autopsy", "testdisk", "foremost", "binwalk"],
-    "stego": ["stegsolve", "zsteg", "steghide", "outguess"],
-    "network": ["wireshark", "tshark", "scapy", "mitmproxy", "frida_rpc", "burp"],
-    "hex": ["xxd", "hexdump", "hexyl", "hxd", "imhex", "cyberchef"]
+    "mobile": ["jadx", "apktool", "baksmali", "dex2jar", "frida-android-helper", "objection", "theos", "frida-ios-dump", "bagbak", "class-dump"],
+    "forensics": ["volatility", "volatility3", "autopsy", "testdisk", "photorec", "foremost", "binwalk", "plaso", "regipy"],
+    "stego": ["stegsolve", "zsteg", "steghide", "outguess", "stegdetect", "deepsound", "openstego"],
+    "network": ["wireshark", "tshark", "scapy", "mitmproxy", "frida_rpc", "burp", "iodine", "dnscat2"],
+    "hex": ["xxd", "hexdump", "hexyl", "hxd", "imhex", "cyberchef"],
+    "cloud": ["trivy", "clair", "snyk", "dive", "cosign", "notary", "helm"],
+    "ai_ml": ["onnx", "tflite", "pytorch", "coreml", "onnx2torch", "tflite-parser", "ptdump"],
+    "blockchain": ["evm.codes", "pyevmasm", "heimdall", "porosity", "etherscan", "tenderly"],
+    "fuzzing": ["afl", "afl++", "libfuzzer", "honggfuzz", "syzkaller", "domato", "fuzzilli"]
+  },
+
+  "tool_patterns": {
+    "static_collaboration": ["ida", "ghidra", "r2", "binary_ninja"],
+    "dynamic_collaboration": ["gdb", "frida", "qiling", "unicorn"],
+    "symbolic_collaboration": ["angr", "triton", "z3"],
+    "mobile_android": ["jadx", "apktool", "frida", "objection", "7zip"],
+    "mobile_ios": ["frida-ios-dump", "class-dump", "theos", "hopper"],
+    "forensics": ["volatility", "foremost", "binwalk", "exiftool", "oletools"],
+    "deobfuscation": ["angr", "triton", "pattern_recognition"]
+  },
+
+  "fallback_chains": {
+    "ida_failed": ["ghidra", "r2", "qiling"],
+    "gdb_failed": ["frida", "static_patch", "emulation"],
+    "frida_detected": ["frida-gadget", "inline_hook", "rename_lib"],
+    "angr_path_explosion": ["z3", "triton", "manual"],
+    "jadx_failed": ["dex2jar+jd-gui", "baksmali", "runtime_dump"],
+    "qiling_missing_syscall": ["unicorn", "custom_syscall"],
+    "z3_timeout": ["boolector", "simplify_constraints"],
+    "memory_dump_failed": ["/proc/<pid>/mem", "pmem", "frida_remote"],
+    "ssl_pinning": ["frida_rpc", "mitmproxy+ca", "keylog_import"]
   },
 
   "report_sections": [
-    "样本分诊",
+    "任务卡",
+    "样本分诊卡",
+    "分诊结论",
     "关键发现",
     "静态分析",
     "动态调试",
     "算法还原 / 解密",
+    "漏洞利用 / PoC",
     "验证",
-    "下一步"
+    "复现步骤",
+    "下一步",
+    "参考资料"
+  ],
+
+  "report_requirements": {
+    "evidence_per_conclusion": true,
+    "script_runnable": true,
+    "hash_recorded": true,
+    "fallback_documented": true,
+    "multiple_solutions_listed": true,
+    "failures_recorded": true
+  },
+
+  "case_categories": [
+    "RE", "Pwn", "Crypto", "Mobile", "IoT", "Forensics",
+    "Stego", "Web", "AI", "Supply", "Cloud", "Web3",
+    "Game", "Browser", "Kernel", "Fuzzing"
+  ],
+
+  "persona_ids": [
+    "RE-7X-2024",
+    "RE-7X-2024-CC",
+    "RE-7X-2024-MOBILE",
+    "RE-7X-2024-IOT",
+    "RE-7X-2024-CLOUD",
+    "RE-7X-2024-AI"
   ],
 
   "build_command": "tools/prompt-tool.ps1"
