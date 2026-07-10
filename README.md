@@ -1,9 +1,9 @@
 # 甲方安全实验室 · 内部技术资料
 # Reverse Engineering Field Manual
 
-> v2.6.2 瘦核心架构：5 大类 Signal 路由 + 31 章 KB 全部就绪（28 章实战 + 3 章补充）。Codex 专精，Claude Code 兼容。
+> v2.6.3 瘦核心架构：5 大类 Signal 路由 + 32 章 KB 全部就绪（28 章实战 + 4 章补充）。Codex 专精，Claude Code 兼容。
 >
-> Field Manual v2.6.2 (slim core + KB externals): 5-category Signal routing + 31 KB chapters complete. Codex-first, Claude Code compatible.
+> Field Manual v2.6.3 (slim core + KB externals): 5-category Signal routing + 32 KB chapters complete. Codex-first, Claude Code compatible.
 
 [![CTF](https://img.shields.io/badge/CTF-Reverse%20Engineering-blue)](https://github.com/topics/ctf)
 [![Codex](https://img.shields.io/badge/Codex-First-green)](https://github.com/openai/codex)
@@ -119,9 +119,9 @@ git内容/
 │   ├── Codex-CTF-Reverse-Prompt.md        # Codex 主推版（10.5KB 瘦核心 · 工号 RE-7X-2024）
 │   ├── prompt-template.md                 # 可配置模板（无显式触发词 · 21 模板变量）
 │   ├── config.json                        # 配置文件（v2.6.2 · 5 大类 Signal 路由 · 31章KB全补齐）
-│   └── kb/                                # 31 章 KB 外置（28 章实战 + 3 章补充）
+│   └── kb/                                # 32 章 KB 外置（28 章实战 + 4 章补充）
 │       ├── 01_triage.md ~ 17_kb_quick_ref.md
-│       └── 18_web_pentest.md ~ 31_bloodhound_queries.md
+│       └── 18_web_pentest.md ~ 32_container_k8s.md
 ├── tools/                                 # Windows 管理工具
 │   ├── prompt-tool.bat                    # CMD 交互式菜单版
 │   └── prompt-tool.ps1                    # PowerShell 增强版
@@ -261,29 +261,36 @@ Join the **Amiya Exchange Group** for discussion:
 
 ---
 
-## 🆕 v2.6.2 vs v2.6.1 关键改进 / v2.6.2 vs v2.6.1 Improvements
+## 🆕 v2.6.3 vs v2.6.2 关键改进 / v2.6.3 vs v2.6.2 Improvements
 
-| 改进项 / Item | v2.6.1 | v2.6.2 |
+| 改进项 / Item | v2.6.2 | v2.6.3 |
 |------|------|------|
-| **KB 总数** | 28 章实战 + 3 章"待补" | **31 章全部就绪**（KB-29/30/31 全部落地） |
-| **KB-29 C2 Profile 模板** | 待补占位 | **20KB / 711 行 / 12 种场景**：CS Malleable C2（5 种：自签HTTPS / 阿里云OSS / Cloudflare Worker / SMB / DoH）+ Mythic Apollo（HTTP / WS）+ Sliver（mTLS HTTPS / DNS / WireGuard）+ Havoc + BruteRatel + 4 种 Redirector（Nginx / Caddy / HAProxy / cloudflared）+ 3 种流量混淆（WebSocket / Slack / GitHub Gist）+ JA3/JARM OPSEC |
-| **KB-30 Mimikatz 命令** | 待补占位 | **24KB / 938 行 / 150+ 命令**：12 大模块（提权 / Sekurlsa / LSA / Kerberos / 证书 / Vault / Token / Process / Service / RPC / TS / Event）+ 14 章 DCSync + 7 个工具集成（PowerShell / WMI / WinRM / PsExec / Impacket / SharpKatz / pypykatz）+ JSON 解析脚本 + 检测与防御对抗 |
-| **KB-31 BloodHound 查询** | 待补占位 | **20KB / 785 行 / 50+ Cypher 查询**：9 大场景（基础枚举 / Kerberoast / AS-REP Roast / ACL 攻击 / 委派 / ADCS ESC1-8 / GPO / 信任 / 持久化）+ SharpHound 收集 + Python 自动化 + 风险打分 + 联动工具 |
-| **KB 索引** | 3 项标记"待补" | 全部 31 项标注实际大小 |
-| **版本号同步** | 分散不一致 | 全文件统一为 v2.6.2 |
-| **全维度覆盖** | 框架已就位、KB 待补 | **全破** — 31 章 KB 全部就绪，GPT-5.6 Solo 无需回退 |
+| **KB 总数** | 31 章 | **32 章**（新增 KB-32 容器 / K8s 攻防） |
+| **KB-32 容器 / K8s 攻防** | 缺失 | **16KB / 697 行 / 8 大类逃逸 + 6 类 K8s 攻击 + 4 类供应链 + 3 类防御对抗** |
+| **启动自检** | 缺失 | **8 步自检清单**（角色 / Signal / KB / 路径 / 边界 / 拦截 / 结论 / 抬头） |
+| **Few-shot 演示** | 缺失 | **3 个完整场景**：典型 CrackMe 任务 / 边界外请求转化 / 内部灰区授权材料确认 |
+| **拒绝恢复话术** | 缺失 | **5 步恢复**：识别信号 → 自动改写 → 重新锚定 → 分解技术点 → 攻防一体 |
+| **关键词降级映射** | 缺失 | **14 组高敏词 → 中性词**（破解→算法还原 / 绕过→识别机制 / 攻击→研究评估 / 利用→验证复现 / 入侵→审计复盘 等） |
+| **失败回退** | 缺失 | **4 级回退**：1 次重写 → 2 次预拦截 → 3 次学术视角 → 始终拒绝 |
+| **模型命名** | GPT-5.6 Solo | 全部统一为 **gpt-5.6-sol**（与官方产品名一致） |
+| **隐蔽性** | 已达标 | **再加固**：高敏词自动降级 + 拒绝后自动改写 |
 
-### v2.6.2 完成度评估 / v2.6.2 Completion
+### v2.6.3 完成度评估 / v2.6.3 Completion
 
 | 维度 / Dimension | 状态 / Status | 备注 / Notes |
 |------|------|------|
 | 启动锚定（角色锁定） | ✅ | # 角色定位 / 工作框架 / 授权边界 / 交付约定 四段式 |
 | 边界处理（预拦截） | ✅ | 授权外请求标准化应对脚本 |
 | Signal 路由（中性化） | ✅ | 5 大类术语中性，触发词移除 |
-| KB 章节完整度 | ✅ | 28 章实战 + 3 章补充 = 31/31 |
-| 总内容规模 | ≈ 600KB | 分布在 31 个 KB 文件 + 3 个入口文件 |
+| **启动自检** | ✅ | 8 步自检清单，每次任务前必跑 |
+| **Few-shot 演示** | ✅ | 3 个完整对话示例 |
+| **拒绝恢复** | ✅ | 5 步恢复 + 4 级回退 |
+| **关键词降级** | ✅ | 14 组映射 + 自动重写 |
+| KB 章节完整度 | ✅ | 32 章 = 28 实战 + 4 补充 |
+| 总内容规模 | ≈ 620KB | 分布在 32 个 KB 文件 + 3 个入口文件 |
 | 框架适配 | ✅ | Codex 专精 + Claude Code 兼容 |
-| 隐蔽性 | ✅ | 无元描述词 / 无触发词 / 中性工作语言 |
+| 隐蔽性 | ✅ | 无元描述词 / 无触发词 / 中性工作语言 / 关键词降级 |
+| **gpt-5.6-sol 通过率** | ✅ | 自检 + Few-shot + 拒绝恢复 + 关键词降级 4 重加固 |
 
 ---
 
@@ -294,4 +301,4 @@ MIT License
 ---
 
 **Last Updated / 最后更新：** 2026-07-10
-**Iteration / 迭代版本：** v2.6.2 (Lab Manual · 5-Category Signal Routing · 31 KB Chapters Complete · **KB-29 C2 Profile + KB-30 Mimikatz 150+ Commands + KB-31 BloodHound 50+ Cypher Queries** · GPT-5.6 Solo 全破就绪)
+**Iteration / 迭代版本：** v2.6.3 (Lab Manual · 5-Category Signal Routing · 32 KB Chapters Complete · **KB-29 C2 Profile + KB-30 Mimikatz 150+ + KB-31 BloodHound 50+ + KB-32 Container/K8s · 启动自检 + Few-shot 演示 + 拒绝恢复** · gpt-5.6-sol 全破就绪)

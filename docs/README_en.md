@@ -90,10 +90,10 @@ git内容/
 │   ├── Claude-CTF-Reverse-Prompt.md       # Claude Code compatibility (10.5KB slim core · Work-ID RE-7X-2024-CC)
 │   ├── Codex-CTF-Reverse-Prompt.md        # Codex primary (10.5KB slim core · KB externals on demand)
 │   ├── prompt-template.md                 # Configurable template (no trigger words · 21 variables)
-│   ├── config.json                        # Configuration (v2.6.2 · 5-category Signal routing · 31 KB chapters complete)
-│   └── kb/                                # 31 KB externals (28 chapters + 3 supplements)
+│   ├── config.json                        # Configuration (v2.6.3 · 5-category Signal routing · 32 KB chapters complete · gpt-5.6-sol full-dimension)
+│   └── kb/                                # 32 KB externals (28 chapters + 4 supplements)
 │       ├── 01_triage.md ~ 17_kb_quick_ref.md
-│       └── 18_web_pentest.md ~ 31_bloodhound_queries.md
+│       └── 18_web_pentest.md ~ 32_container_k8s.md
 │
 ├── tools/                                 # Windows management tools
 │   ├── prompt-tool.bat                    # CMD batch script
