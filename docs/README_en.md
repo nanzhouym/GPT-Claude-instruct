@@ -1,4 +1,5 @@
-# GPT-Claude CTF Reverse Engineering Prompt Template - Documentation
+# Lab Reverse Engineering Field Manual - Full Documentation
+# 甲方安全实验室 · 内部技术资料 - 完整文档
 
 ## Table of Contents
 
@@ -10,32 +11,34 @@
 6. [CTF Categories](#6-ctf-categories)
 7. [Toolchain Reference](#7-toolchain-reference)
 8. [Configuration](#8-configuration)
-9. [Usage Examples](#9-usage-examples)
-10. [Disclaimer](#10-disclaimer)
-11. [License](#11-license)
-12. [Community](#12-community)
+9. [v2.5 Release Notes](#9-v25-release-notes)
+10. [License](#10-license)
+11. [Community](#11-community)
 
 ---
 
 ## 1. Project Overview
 
-This repository provides professional-grade **CTF (Capture The Flag) Reverse Engineering Prompt Templates** designed for dual-framework compatibility — working seamlessly with both **Claude Code** (Anthropic) and **Codex** (OpenAI) CLI agents.
+This repository is the **internal field manual of an in-house security lab**, designed for dual-framework compatibility — working seamlessly with both **Claude Code** (Anthropic) and **Codex** (OpenAI) CLI agents.
 
 ### Key Features
 
-- **Dual-Framework Compatible**: Single template design works with Claude Code and Codex CLI agents
-- **Comprehensive Coverage**: Full CTF category support including RE, Pwn, Crypto, Web, Forensics, Steganography, Mobile, IoT, and Cloud Security
-- **Professional Toolchain**: Integrated references for IDA Pro, Ghidra, Radare2, GDB, pwndbg, angr, Z3, Triton, Frida, and more
-- **Scientific Research Ready**: Structured for academic security research, CTF competition preparation, and vulnerability analysis
-- **Bilingual Documentation**: Complete README in both English and Simplified Chinese
+- **Field Manual Architecture**: Workstation ID `RE-7X-2024` + `/lab` workstation + work-order system + `/lab/reports/` archive — three-pillar anchoring in pure work-manual language
+- **24-Module KB Routing**: R1-Z1+T1 full coverage (Linux/Windows/Apple/Android/iOS/WASM/IoT/Forensics/Stego/Network/Web/Browser/Crypto/Formal/AI/Supply/Web3/Game/Kernel/Fuzzing/Triage)
+- **5-Stage Workflow**: Triage → Static Analysis → Dynamic Analysis → Algorithm Recovery → Exploit/PoC
+- **14 Specialized Chapters**: Injection / Memory RW / CrackMe / KeygenMe / Network Verify / License / Repack / Unpacking / Deobfuscation / Game Cheat (22 sections full) / **Web Pentest** / **Internal Pentest** / **Privilege Escalation & Persistence** / **Exploit Engineering** / **Red Team Infrastructure**
+- **6 Tool Patterns + 12 Fallback Chains**: IDA failed → Ghidra/r2, Frida detected → frida-gadget, etc.
+- **21 Template Variables**: From boot anchor to pentest chapter — fully configurable
+- **9 Persona Work-IDs**: Senior Researcher / Research Assistant / Web Pentest Specialist / Red Team Specialist / Mobile Specialist / IoT Specialist / Cloud-Native Specialist / AI Specialist / CrackMe Specialist
 
 ### Target Users
 
-- CTF competition participants
-- Security researchers and analysts
-- Binary vulnerability researchers
+- CTF team members
+- In-house security lab researchers
+- Binary vulnerability / reverse engineering researchers
+- Authorized-environment penetration testers
+- Red / blue team operators
 - Academic security educators
-- Penetration testers (authorized environments)
 
 ---
 
@@ -56,8 +59,6 @@ cd GPT-Claude-instruct
 ```bash
 # Copy the Claude Code prompt template
 cp prompts/Claude-CTF-Reverse-Prompt.md ~/.claude/prompts/ctf-reverse.md
-
-# Or set as system prompt in Claude Code configuration
 ```
 
 ### 2.3 Codex Setup
@@ -65,9 +66,6 @@ cp prompts/Claude-CTF-Reverse-Prompt.md ~/.claude/prompts/ctf-reverse.md
 ```bash
 # Copy the Codex prompt template
 cp prompts/Codex-CTF-Reverse-Prompt.md ~/.codex/prompts/ctf-reverse.md
-
-# Or configure via Codex CLI
-codex configure --system-prompt-file ./Codex-CTF-Reverse-Prompt.md
 ```
 
 ### 2.4 Windows Quick Tools
@@ -78,9 +76,6 @@ codex configure --system-prompt-file ./Codex-CTF-Reverse-Prompt.md
 
 # PowerShell version - interactive menu + command line arguments
 powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1
-
-# PowerShell with arguments
-powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1 -Action both -Force
 ```
 
 ---
@@ -90,10 +85,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1 -Action both -F
 ```
 git内容/
 ├── prompts/                              # Prompt templates
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code version (~250 lines)
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex version (~250 lines)
-│   ├── prompt-template.md                # Configurable template with placeholders
-│   └── config.json                       # Configuration file
+│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code version (compat, 75KB · 14 specialized chapters)
+│   ├── Codex-CTF-Reverse-Prompt.md       # Codex version (primary, 152KB · 24 modules · 5 stages · 22 chapters)
+│   ├── prompt-template.md                # Configurable template (21 variables)
+│   └── config.json                       # Configuration (v2.5.0 · 14 chapters + 11 modules)
 │
 ├── tools/                                # Windows management tools
 │   ├── prompt-tool.bat                   # CMD batch script
@@ -106,8 +101,7 @@ git内容/
 ├── images/                               # Images and assets
 │   └── b2b81cd407357da51e7990223fe6cf9d.png  # QQ Group QR Code
 │
-├── README.md                             # Main README (bilingual, language switchable)
-└── README_zh.md                          # Legacy Chinese README
+└── README.md                             # Main README
 ```
 
 ---
@@ -125,15 +119,21 @@ git内容/
 - Exploit Development: ROP chain construction, UAF exploitation, format string attacks
 - Anti-Debug Bypass: Environment detection, VM detection, tracing evasion techniques
 - Unpacking & Deobfuscation: UPX, VMProtect, Themida analysis, control flow flattening recovery
-- Full CTF category coverage: RE, Pwn, Crypto, Web, Forensics, Steganography, Mobile, IoT, Cloud
+- **Web Pentest Chapter (Ch. 18)**: OWASP Top 10 + WAF bypass + Burp/sqlmap/nuclei/xray toolkit
+- **Internal Pentest Chapter (Ch. 19)**: Kerberos attacks + lateral movement + pivoting (FRP/Ligolo/Chisel)
+- **Privilege Escalation Chapter (Ch. 20)**: Windows/Linux privesc + persistence + log cleaning
+- **Exploit Engineering Chapter (Ch. 21)**: Exploit-DB + Metasploit + 11 classic CVEs + custom EXP template
+- **Red Team Infrastructure (Ch. 22)**: C2 frameworks + traffic evasion + EDR bypass
 
-**File Size**: ~250 lines, pure English
+**File Size**: 75KB, 22 specialized chapters
 
 ### 4.2 Codex-CTF-Reverse-Prompt.md
 
 **Environment**: Codex (OpenAI CLI Agent)
 
-Same capabilities as Claude version, with framework-specific identity markers.
+Same capabilities as Claude version, includes 24 module routing, 5-stage workflow, 22 specialized chapters full version. Codex primary.
+
+**File Size**: 152KB, 22 specialized chapters (includes 22-section Game Cheat full version)
 
 ### 4.3 prompt-template.md
 

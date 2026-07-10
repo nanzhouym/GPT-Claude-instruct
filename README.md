@@ -1,9 +1,9 @@
 # 甲方安全实验室 · 内部技术资料
 # Reverse Engineering Field Manual
 
-进入 CTF 模式：24 模块 + 5 阶段工作流 + 9 章实战（注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件 / 重封装 / **脱壳** / **反混淆** / **游戏外挂（22 节完整版）**）。Codex 专精，Claude Code 兼容。
+进入 CTF 模式：24 模块 + 5 阶段工作流 + 14 章实战（注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件 / 重封装 / **脱壳** / **反混淆** / **游戏外挂（22 节完整版）** / **Web 渗透** / **内网渗透** / **权限提升与持久化** / **漏洞利用工程** / **红队基础设施**）。Codex 专精，Claude Code 兼容。
 
-> Field Manual: 24 modules + 5-stage workflow + 9 specialized chapters (Injection / Memory RW / CrackMe / KeygenMe / Network Verify / License / Repack / **Unpacking** / **Deobfuscation** / **Game Cheat (22 sections, full version)**). Codex-first, Claude Code compatible.
+> Field Manual: 24 modules + 5-stage workflow + 14 specialized chapters (Injection / Memory RW / CrackMe / KeygenMe / Network Verify / License / Repack / **Unpacking** / **Deobfuscation** / **Game Cheat (22 sections, full version)** / **Web Pentest** / **Internal Pentest** / **Privilege Escalation & Persistence** / **Exploit Engineering** / **Red Team Infrastructure**). Codex-first, Claude Code compatible.
 
 [![CTF](https://img.shields.io/badge/CTF-Reverse%20Engineering-blue)](https://github.com/topics/ctf)
 [![Codex](https://img.shields.io/badge/Codex-First-green)](https://github.com/openai/codex)
@@ -114,10 +114,10 @@ Static analysis · Dynamic debugging · Symbolic execution · Exploit developmen
 ```
 git内容/
 ├── prompts/                              # Prompt 模板
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，48KB · 9 章实战）
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，98KB · 24模块 · 5阶段 · 9章实战 · 22节游戏外挂）
-│   ├── prompt-template.md                # 可配置模板（进入CTF模式架构 · 16章模板变量）
-│   └── config.json                       # 配置文件（v2.4 · 9章实战 + 7 个新模块配置）
+│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，75KB · 14 章实战）
+│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，152KB · 24模块 · 5阶段 · 22章实战 · 22节游戏外挂）
+│   ├── prompt-template.md                # 可配置模板（进入CTF模式架构 · 21章模板变量）
+│   └── config.json                       # 配置文件（v2.5 · 14章实战 + 11个新模块配置）
 ├── tools/                                # Windows 管理工具
 │   ├── prompt-tool.bat                   # CMD 交互式菜单版
 │   └── prompt-tool.ps1                   # PowerShell 增强版
@@ -263,4 +263,4 @@ MIT License
 ---
 
 **Last Updated / 最后更新：** 2026-07-10
-**Iteration / 迭代版本：** v2.4 (Enter CTF Mode · 24-Module · 5-Stage · **9 Specialized Chapters: +Unpacking +Deobfuscation +Game Cheat 22 sections full version**)
+**Iteration / 迭代版本：** v2.5 (Enter CTF Mode · 24-Module · 5-Stage · **14 Specialized Chapters: +Unpacking +Deobfuscation +Game Cheat 22 sections full version +Web Pentest +Internal Pentest +Privilege Escalation +Exploit Engineering +Red Team Infrastructure**)

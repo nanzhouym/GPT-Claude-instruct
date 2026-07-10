@@ -288,7 +288,6 @@
 {{/AI_ML_CHEAT}}
 
 ---
-
 {{NETWORK_EVASION}}
 # 网络层对抗 / 流量伪装 (新增 15.20)
 # 流量伪装: 时间间隔高斯分布 / 报文 padding / tc 整形 / TLS 指纹混淆
@@ -299,6 +298,74 @@
 # 推荐栈:   客户端 → VLESS+Reality → 海外 VPS → 原服务器
 #           或:    客户端 → CDN (Cloudflare) → 自建反代
 {{/NETWORK_EVASION}}
+
+---
+
+{{WEB_PENETRATION}}
+# Web 应用渗透专章 (新增 18)
+# OWASP Top 10 (2021): A01 访问控制失效 / A02 加密失效 / A03 注入 / A04 不安全设计 /
+#                      A05 配置错误 / A06 脆弱组件 / A07 认证失效 / A08 完整性失效 /
+#                      A09 日志监控失效 / A10 SSRF
+# 漏洞类型: SQL注入 / XSS / CSRF / SSRF / XXE / 反序列化 / 文件上传 / 文件包含 / RCE
+# WAF 绕过: 大小写 / 注释 / URL 编码 / unicode / HPP / 等价函数 / 分块传输
+# 工具链:   Burp / sqlmap / nuclei / xray / Goby / pocs3 / WPScan / Dirsearch / ffuf
+{{/WEB_PENETRATION}}
+
+---
+
+{{INTERNAL_PENETRATION}}
+# 内网渗透专章 (新增 19)
+# 信息收集: arp-scan / nmap / masscan / rustscan / fscan / kscan / Kunyu
+# Windows 信息: systeminfo / net view / whoami / net localgroup / wmic / schtasks
+# 凭据转储: mimikatz / Rubeus / LaZagne / SharpHound / BloodHound / Certify
+# Kerberos: Kerberoast / AS-REP Roast / PtT / PtH / Golden Ticket / Silver Ticket
+# 横向移动: PsExec / WMI / WinRM (evil-winrm) / DCOM / Scheduled Tasks / SMB / RDP
+# 内网穿透: FRP / NPS / Chisel / Ligolo-ng / EarthWorm / iox / Gost
+{{/INTERNAL_PENETRATION}}
+
+---
+
+{{PRIVILEGE_ESCALATION}}
+# 权限提升与持久化专章 (新增 20)
+# Windows 提权: 弱权限服务 / AlwaysInstallElevated / DLL 劫持 / 计划任务 /
+#               UAC 绕过 (fodhelper/eventvwr) / Token Impersonation
+# Windows 内核: CVE-2021-1732 (Win32k) / CVE-2021-36934 (HiveNightmare)
+# Linux 提权: SUID/SGID / sudo / Capabilities / Crontab / PATH 劫持 / 通配符注入 /
+#             LD_PRELOAD / Docker 组 / LXC 组
+# Linux 内核: CVE-2021-4034 (PwnKit) / CVE-2021-3156 (Baron Samedit) /
+#             CVE-2022-0847 (Dirty Pipe) / CVE-2023-0386 (overlayfs)
+# 持久化: 注册表 Run / 计划任务 / WMI Event / systemd / cron / SSH keys / PAM
+# 痕迹清理: wevtutil cl / echo > log / history -c / touch -t 篡改时间戳
+{{/PRIVILEGE_ESCALATION}}
+
+---
+
+{{EXPLOIT_ENGINEERING}}
+# 漏洞利用工程专章 (新增 21)
+# 漏洞库: Exploit-DB (searchsploit) / GitHub Advisory / NVD / CVE Mitre / CNVD / CNNVD / Seebug / Vulhub
+# 利用框架: Metasploit / pocs3 / nuclei / xray / Goby / Yakit
+# 经典 CVE 速查:
+#   WebLogic: CVE-2020-14882   Shiro: CVE-2016-4437
+#   Log4j: CVE-2021-44228      Spring4Shell: CVE-2022-22965
+#   Confluence: CVE-2022-26134 Exchange: CVE-2021-26855
+#   F5 BIG-IP: CVE-2020-5902   Citrix: CVE-2019-19781
+#   GitLab: CVE-2021-22205     Drupal: CVE-2018-7600
+# 自定义 EXP 模板: Python pocs3 / Go nuclei / Bash one-liner
+{{/EXPLOIT_ENGINEERING}}
+
+---
+
+{{RED_TEAM_INFRA}}
+# 红队基础设施专章 (新增 22)
+# C2 框架: Cobalt Strike / Sliver / Mythic / Empire / Covenant / Merlin / Havoc / Brute Ratel
+# C2 部署: teamserver / sliver-server / mythic-cli → listener → implant → 投递
+# 流量伪装: uTLS HelloChrome_120 / VLESS+Reality / Trojan / VLESS+XTLS
+#           Cloudflare Workers 域前置 / DoH / WebSocket / HTTP/2 / C2 profile
+# EDR 绕过: AMSI 绕过 / Unhook NTDLL / Direct Syscall (SysWhispers2) /
+#           进程注入 (APC/Thread Hijack/Module Stomping) / ETW bypass
+#           DSE bypass + BYOVD (capcom/gdrv/iqvw64e) / DKOM / Hypervisor
+# Kill Chain: Recon → Weaponization → Delivery → Exploitation → Installation → C2 → Actions
+{{/RED_TEAM_INFRA}}
 
 ---
 

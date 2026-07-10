@@ -1,4 +1,5 @@
-# GPT-Claude CTF 逆向工程 Prompt 模板 - 完整文档
+# 甲方安全实验室 · 内部技术资料 - 完整文档
+# Reverse Engineering Field Manual - Full Documentation
 
 ## 目录
 
@@ -10,7 +11,7 @@
 6. [CTF 类别](#6-ctf-类别)
 7. [工具链参考](#7-工具链参考)
 8. [配置说明](#8-配置说明)
-9. [使用示例](#9-使用示例)
+9. [v2.5 改进说明](#9-v25-改进说明)
 10. [许可证](#10-许可证)
 11. [社区](#11-社区)
 
@@ -18,23 +19,26 @@
 
 ## 1. 项目概述
 
-本仓库提供专业级的 **CTF（Capture The Flag）逆向工程 Prompt 模板**，专为双框架兼容性设计 —— 可在 **Claude Code**（Anthropic）和 **Codex**（OpenAI）CLI 智能体上无缝运行。
+本仓库是 **甲方安全实验室内部技术资料**，专为双框架兼容性设计 —— 可在 **Claude Code**（Anthropic）和 **Codex**（OpenAI）CLI 智能体上无缝运行。
 
 ### 核心特性
 
-- **双框架兼容**：单一模板设计，同时支持 Claude Code 和 Codex CLI 智能体
-- **全面覆盖**：完整支持 CTF 全类别，包括 RE、Pwn、Crypto、Web、Forensics、Steganography、Mobile、IoT、Cloud Security
-- **专业工具链**：集成 IDA Pro、Ghidra、Radare2、GDB、pwndbg、angr、Z3、Triton、Frida 等工具参考
-- **科研级设计**：结构化设计，适用于学术安全研究、CTF 竞赛备赛和漏洞分析
-- **双语文档**：提供英文和简体中文文档
+- **工作手册架构**：工号 RE-7X-2024 + 工作站 /lab + 派单系统 + 归档 /lab/reports/ 三件套锚定，纯工作手册语言
+- **24 模块 KB 路由**：R1-Z1+T1 完整覆盖（Linux/Windows/Apple/Android/iOS/WASM/IoT/Forensics/Stego/Network/Web/Browser/Crypto/Formal/AI/Supply/Web3/Game/Kernel/Fuzzing/Triage）
+- **5 阶段工作流**：Triage → Static Analysis → Dynamic Analysis → Algorithm Recovery → Exploit/PoC
+- **14 章实战专章**：注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件 / 重封装 / 脱壳 / 反混淆 / 游戏外挂（22 节完整版）/ **Web 渗透** / **内网渗透** / **权限提升与持久化** / **漏洞利用工程** / **红队基础设施**
+- **6 种工具组合 Pattern + 12 条 Fallback 链路**：IDA 失败 → Ghidra/r2，Frida 检测 → frida-gadget 等
+- **21 个模板变量**：从启动锚定到渗透章节全可配置
+- **9 个工号 Persona**：资深研究员 / 研究员助理 / Web 渗透专家 / 红队专家 / 移动端专家 / IoT 专家 / 云原生专家 / AI 专家 / CrackMe 专家
 
 ### 目标用户
 
-- CTF 竞赛参赛者
-- 安全研究人员和分析师
-- 二进制漏洞研究人员
-- 学术安全教育者
+- CTF 战队参赛者
+- 甲方安全实验室研究员
+- 二进制漏洞 / 逆向研究人员
 - 授权环境下的渗透测试人员
+- 红蓝对抗操作员
+- 学术安全教育者
 
 ---
 
@@ -55,8 +59,6 @@ cd GPT-Claude-instruct
 ```bash
 # 复制 Claude Code Prompt 模板
 cp prompts/Claude-CTF-Reverse-Prompt.md ~/.claude/prompts/ctf-reverse.md
-
-# 或在 Claude Code 配置中设置为系统提示词
 ```
 
 ### 2.3 Codex 配置
@@ -64,9 +66,6 @@ cp prompts/Claude-CTF-Reverse-Prompt.md ~/.claude/prompts/ctf-reverse.md
 ```bash
 # 复制 Codex Prompt 模板
 cp prompts/Codex-CTF-Reverse-Prompt.md ~/.codex/prompts/ctf-reverse.md
-
-# 或通过 Codex CLI 配置
-codex configure --system-prompt-file ./Codex-CTF-Reverse-Prompt.md
 ```
 
 ### 2.4 Windows 快捷工具
@@ -77,9 +76,6 @@ codex configure --system-prompt-file ./Codex-CTF-Reverse-Prompt.md
 
 # PowerShell 版本 - 交互式菜单 + 命令行参数
 powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1
-
-# 带参数使用
-powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1 -Action both -Force
 ```
 
 ---
@@ -89,10 +85,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1 -Action both -F
 ```
 git内容/
 ├── prompts/                              # Prompt 模板
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（约 250 行）
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（约 250 行）
-│   ├── prompt-template.md                # 可配置模板，含占位符
-│   └── config.json                       # 配置文件
+│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，75KB · 14 章实战）
+│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，152KB · 24模块 · 5阶段 · 22章实战 · 22节游戏外挂）
+│   ├── prompt-template.md                # 可配置模板（21 个模板变量）
+│   └── config.json                       # 配置文件（v2.5.0 · 14 章实战 + 11 大模块）
 │
 ├── tools/                                # Windows 管理工具
 │   ├── prompt-tool.bat                   # CMD 批处理脚本
@@ -105,8 +101,7 @@ git内容/
 ├── images/                               # 图片资源
 │   └── b2b81cd407357da51e7990223fe6cf9d.png  # QQ 群二维码
 │
-├── README.md                             # 主 README（双语，可切换语言）
-└── README_zh.md                          # 遗留中文 README
+└── README.md                             # 主 README
 ```
 
 ---
@@ -124,15 +119,21 @@ git内容/
 - 漏洞利用开发：ROP 链构建、UAF 漏洞利用、格式化字符串攻击
 - 反调试绕过：环境检测、虚拟机检测、反追踪技术
 - 脱壳与反混淆：UPX、VMProtect、Themida 分析、控制流扁平化恢复
-- 完整 CTF 类别覆盖：RE、Pwn、Crypto、Web、Forensics、Steganography、Mobile、IoT、Cloud
+- **Web 渗透专章**（第 18 章）：OWASP Top 10 + WAF 绕过 + Burp/sqlmap/nuclei/xray 工具链
+- **内网渗透专章**（第 19 章）：Kerberos 攻击 + 横向移动 + 内网穿透（FRP/Ligolo/Chisel）
+- **权限提升专章**（第 20 章）：Windows/Linux 提权 + 持久化 + 痕迹清理
+- **漏洞利用专章**（第 21 章）：Exploit-DB + Metasploit + 11 个经典 CVE + 自定义 EXP 模板
+- **红队基础设施**（第 22 章）：C2 框架 + 流量伪装 + EDR 绕过
 
-**文件大小**: 约 250 行，纯英文
+**文件大小**: 75KB，22 章实战
 
 ### 4.2 Codex-CTF-Reverse-Prompt.md
 
 **环境**: Codex (OpenAI CLI 智能体)
 
-与 Claude 版本能力一致，仅框架标识不同。
+与 Claude 版本能力一致，包含 24 模块路由、5 阶段工作流、22 章实战完整版，Codex 专精。
+
+**文件大小**: 152KB，22 章实战（含 22 节游戏外挂完整版）
 
 ### 4.3 prompt-template.md
 

