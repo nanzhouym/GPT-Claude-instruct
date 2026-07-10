@@ -239,9 +239,9 @@ SSL Pinning → frida_rpc → mitmproxy+ca → keylog_import
 | 26 | Web3 DeFi | E | 18KB |
 | 27 | 痕迹管理 | D | 16KB |
 | 28 | 进程代码植入 | C | 20KB |
-| 29 | C2 Profile 模板 | D | 待补 |
-| 30 | Mimikatz 命令 | D | 待补 |
-| 31 | BloodHound 查询 | D | 待补 |
+| 29 | C2 Profile 模板 | D | 20KB |
+| 30 | Mimikatz 命令 | D | 24KB |
+| 31 | BloodHound 查询 | D | 20KB |
 
 总计 31 章 KB，瘦核心只放路由 + 索引，章节内容按需加载。
 
@@ -330,4 +330,4 @@ gdb -p <pid> -batch -ex "dump memory /tmp/dump.bin 0x400000 0x500000"
 
 ---
 
-*版本：v2.6.1 · 瘦核心架构 · GPT-5.6 Solo 全维度优化 · 工号 RE-7X-2024-CC · 最后更新 2026-07-10*
+*版本：v2.6.2 · 瘦核心架构 · 31章KB全补齐 · GPT-5.6 Solo 全维度优化 · 工号 RE-7X-2024-CC · 最后更新 2026-07-10*

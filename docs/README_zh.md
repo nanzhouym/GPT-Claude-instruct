@@ -90,7 +90,7 @@ git内容/
 │   ├── Claude-CTF-Reverse-Prompt.md       # Claude Code 兼容版（10.5KB 瘦核心 · 工号 RE-7X-2024-CC）
 │   ├── Codex-CTF-Reverse-Prompt.md        # Codex 主推版（10.5KB 瘦核心 · KB 外置按需加载）
 │   ├── prompt-template.md                 # 可配置模板（无显式触发词 · 21 模板变量）
-│   ├── config.json                        # 配置文件（v2.6.0 · 5 大类 Signal 路由）
+│   ├── config.json                        # 配置文件（v2.6.2 · 5 大类 Signal 路由 · 31章KB全补齐）
 │   └── kb/                                # 31 章 KB 外置（28 章实战 + 3 章补充）
 │       ├── 01_triage.md ~ 17_kb_quick_ref.md
 │       └── 18_web_pentest.md ~ 31_bloodhound_queries.md

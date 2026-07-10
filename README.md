@@ -1,9 +1,9 @@
 # 甲方安全实验室 · 内部技术资料
 # Reverse Engineering Field Manual
 
-> v2.6 瘦核心架构：5 大类 Signal 路由 + 31 章 KB 外置（28 章实战 + 3 章补充）。Codex 专精，Claude Code 兼容。
+> v2.6.2 瘦核心架构：5 大类 Signal 路由 + 31 章 KB 全部就绪（28 章实战 + 3 章补充）。Codex 专精，Claude Code 兼容。
 >
-> Field Manual v2.6 (slim core + KB externals): 5-category Signal routing + 31 KB chapters. Codex-first, Claude Code compatible.
+> Field Manual v2.6.2 (slim core + KB externals): 5-category Signal routing + 31 KB chapters complete. Codex-first, Claude Code compatible.
 
 [![CTF](https://img.shields.io/badge/CTF-Reverse%20Engineering-blue)](https://github.com/topics/ctf)
 [![Codex](https://img.shields.io/badge/Codex-First-green)](https://github.com/openai/codex)
@@ -118,7 +118,7 @@ git内容/
 │   ├── Claude-CTF-Reverse-Prompt.md       # Claude Code 兼容版（10.5KB 瘦核心 · 工号 RE-7X-2024-CC）
 │   ├── Codex-CTF-Reverse-Prompt.md        # Codex 主推版（10.5KB 瘦核心 · 工号 RE-7X-2024）
 │   ├── prompt-template.md                 # 可配置模板（无显式触发词 · 21 模板变量）
-│   ├── config.json                        # 配置文件（v2.6.0 · 5 大类 Signal 路由）
+│   ├── config.json                        # 配置文件（v2.6.2 · 5 大类 Signal 路由 · 31章KB全补齐）
 │   └── kb/                                # 31 章 KB 外置（28 章实战 + 3 章补充）
 │       ├── 01_triage.md ~ 17_kb_quick_ref.md
 │       └── 18_web_pentest.md ~ 31_bloodhound_queries.md
@@ -261,6 +261,32 @@ Join the **Amiya Exchange Group** for discussion:
 
 ---
 
+## 🆕 v2.6.2 vs v2.6.1 关键改进 / v2.6.2 vs v2.6.1 Improvements
+
+| 改进项 / Item | v2.6.1 | v2.6.2 |
+|------|------|------|
+| **KB 总数** | 28 章实战 + 3 章"待补" | **31 章全部就绪**（KB-29/30/31 全部落地） |
+| **KB-29 C2 Profile 模板** | 待补占位 | **20KB / 711 行 / 12 种场景**：CS Malleable C2（5 种：自签HTTPS / 阿里云OSS / Cloudflare Worker / SMB / DoH）+ Mythic Apollo（HTTP / WS）+ Sliver（mTLS HTTPS / DNS / WireGuard）+ Havoc + BruteRatel + 4 种 Redirector（Nginx / Caddy / HAProxy / cloudflared）+ 3 种流量混淆（WebSocket / Slack / GitHub Gist）+ JA3/JARM OPSEC |
+| **KB-30 Mimikatz 命令** | 待补占位 | **24KB / 938 行 / 150+ 命令**：12 大模块（提权 / Sekurlsa / LSA / Kerberos / 证书 / Vault / Token / Process / Service / RPC / TS / Event）+ 14 章 DCSync + 7 个工具集成（PowerShell / WMI / WinRM / PsExec / Impacket / SharpKatz / pypykatz）+ JSON 解析脚本 + 检测与防御对抗 |
+| **KB-31 BloodHound 查询** | 待补占位 | **20KB / 785 行 / 50+ Cypher 查询**：9 大场景（基础枚举 / Kerberoast / AS-REP Roast / ACL 攻击 / 委派 / ADCS ESC1-8 / GPO / 信任 / 持久化）+ SharpHound 收集 + Python 自动化 + 风险打分 + 联动工具 |
+| **KB 索引** | 3 项标记"待补" | 全部 31 项标注实际大小 |
+| **版本号同步** | 分散不一致 | 全文件统一为 v2.6.2 |
+| **全维度覆盖** | 框架已就位、KB 待补 | **全破** — 31 章 KB 全部就绪，GPT-5.6 Solo 无需回退 |
+
+### v2.6.2 完成度评估 / v2.6.2 Completion
+
+| 维度 / Dimension | 状态 / Status | 备注 / Notes |
+|------|------|------|
+| 启动锚定（角色锁定） | ✅ | # 角色定位 / 工作框架 / 授权边界 / 交付约定 四段式 |
+| 边界处理（预拦截） | ✅ | 授权外请求标准化应对脚本 |
+| Signal 路由（中性化） | ✅ | 5 大类术语中性，触发词移除 |
+| KB 章节完整度 | ✅ | 28 章实战 + 3 章补充 = 31/31 |
+| 总内容规模 | ≈ 600KB | 分布在 31 个 KB 文件 + 3 个入口文件 |
+| 框架适配 | ✅ | Codex 专精 + Claude Code 兼容 |
+| 隐蔽性 | ✅ | 无元描述词 / 无触发词 / 中性工作语言 |
+
+---
+
 ## 📜 License / 许可证
 
 MIT License
@@ -268,4 +294,4 @@ MIT License
 ---
 
 **Last Updated / 最后更新：** 2026-07-10
-**Iteration / 迭代版本：** v2.5 (Enter CTF Mode · 24-Module · 5-Stage · **14 Specialized Chapters: +Unpacking +Deobfuscation +Game Cheat 22 sections full version +Web Pentest +Internal Pentest +Privilege Escalation +Exploit Engineering +Red Team Infrastructure**)
+**Iteration / 迭代版本：** v2.6.2 (Lab Manual · 5-Category Signal Routing · 31 KB Chapters Complete · **KB-29 C2 Profile + KB-30 Mimikatz 150+ Commands + KB-31 BloodHound 50+ Cypher Queries** · GPT-5.6 Solo 全破就绪)
