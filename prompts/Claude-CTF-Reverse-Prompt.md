@@ -757,11 +757,888 @@ checksec --file=target_packed
 
 ---
 
-## 第 13 章 · 报告写作规范
+## 第 13 章 · 脱壳专章
+
+**目的**：训练题和实际样本中，加壳很常见。研究员要把壳剥掉，还原原始程序的可分析形态。
+
+### 13.1 加壳识别速查
+
+| 壳 | 区段特征 | 入口特征 | 关键工具 |
+|------|---------|---------|---------|
+| UPX | UPX0/UPX1 | jmp 跳到 UPX1 | upx -d |
+| ASPack | .aspack / .adata | 复杂跳转 | 通用脱壳机 |
+| VMProtect | .vmp0 / .vmp1 | 大量 vm_entry | VMHunt |
+| Themida | .themida | 异常链 | StrongOD 插件 |
+| 自实现 | 自定义 | 入口解密 | 手动 + dump |
+
+### 13.2 UPX 脱壳
+
+```bash
+# 最简单
+upx -d <sample> -o <unpacked>
+upx -d -f <sample> -o <unpacked>  # 强制
+```
+
+**手动 UPX 脱壳**：
+```
+1. x64dbg 加载
+2. 设断到 jmp 跳到 OEP 之前
+3. F9 跑
+4. 在 OEP 处停下
+5. dump memory 整个 .text 段
+6. Scylla / ImportREC 重建 IAT
+7. PE 工具修复导入表
+```
+
+**Frida 主动 dump**（绕过任何壳）：
+```javascript
+var modules = Process.enumerateModules();
+for (var i = 0; i < modules.length; i++) {
+    var m = modules[i];
+    var buf = Memory.readByteArray(m.base, m.size);
+    var f = new File("/data/local/tmp/" + m.name + ".bin", "wb");
+    f.write(buf);
+    f.close();
+}
+```
+
+### 13.3 VMProtect 脱壳
+
+VMProtect 特点：关键函数被 VM 字节码替换，难以完整脱壳。半脱壳方法：
+```
+1. 找 OEP
+2. dump 内存到 OEP
+3. 重建 IAT
+4. VMHunt 分析剩余 VM 字节码
+5. 通过 handler 模式库还原
+6. 关键函数 Patch
+```
+
+### 13.4 Themida 脱壳
+
+Themida 特点：多层 anti-debug + 虚拟机 + 保护。脱壳方法：
+```
+1. 识别 Themida 版本
+2. StrongOD / ScyllaHide 绕过 anti-debug
+3. 找 "退出点"（jmp 跳到 .text）
+4. dump 整个 .text
+5. ImportREC / Scylla 修复 IAT
+```
+
+### 13.5 自实现壳脱壳
+
+```
+1. 静态分析壳代码
+   - 找加密算法（XOR / AES / RC4）
+   - 找解密循环 + 跳回 OEP
+2. GDB 调试
+   - 断在解密完成后 + 跳回前
+3. dump 内存到文件
+4. 重建 PE/ELF（Scylla / pefile / lief）
+5. IDA / Ghidra 重新分析
+```
+
+**GDB 手动脱壳**：
+```bash
+gdb ./packed
+(gdb) b *0x401500
+(gdb) r
+(gdb) dump memory unpacked.bin 0x400000 0x420000
+```
+
+### 13.6 脱壳工具清单
+
+| 工具 | 用途 |
+|------|------|
+| `upx -d` | UPX 脱壳 |
+| `Scylla` | PE 重建 IAT |
+| `ImportREC` | 重建导入表 |
+| `VMHunt` | VMProtect 分析 |
+| `StrongOD` / `ScyllaHide` | 反 anti-debug |
+| `TitanHide` | 内核隐藏调试器 |
+| `CFF Explorer` | PE 编辑 |
+| `pefile` / `lief` (Python) | PE/ELF 解析 |
+| `Frida dump.py` | 通用 dump 脚本 |
+
+---
+
+## 第 14 章 · 反混淆专章
+
+**目的**：训练题和实际样本中常用 OLLVM、自实现 VM 来混淆代码。研究员要把混淆去掉，还原可读代码。
+
+### 14.1 混淆类型识别
+
+| 混淆类型 | 特征 | 难度 |
+|---------|------|------|
+| 控制流平坦化 (CFF) | 状态变量 + 大 switch | 中 |
+| 虚假控制流 (BCF) | 不透明谓词 + 永远不会跑的分支 | 中 |
+| 指令替换 (Sub) | 加减替代乘除 | 易 |
+| 字符串加密 | 字符串不在 .rodata | 易 |
+| 自定义 VM | dispatcher + handler 表 | 难 |
+
+### 14.2 OLLVM 反混淆
+
+**OLLVM 三件套识别**：
+- CFF：状态变量名 `state` / `v0` / `v1`
+- BCF：`llvm_obfuscator_*` 函数 / `opaque_predicate`
+- Sub：`x * 2` → `x + x` / `x * 3` → `(x << 1) + x`
+
+**手动反 OLLVM-CFF**：
+```
+1. 找状态变量（switch 核心）
+2. 列所有 case 目标地址
+3. angr / Triton 收集真实可达块
+4. 按执行顺序拼接
+5. 去除死代码
+6. IDA 重新分析
+```
+
+### 14.3 自定义 VM 反混淆
+
+```
+dispatcher (主循环):
+  while True:
+    fetch opcode
+    decode → handler
+    call handler
+    handler 改 PC
+    if PC == exit: break
+```
+
+**VM 反混淆 5 步法**：
+```
+1. 找 dispatcher（核心 switch/loop）
+2. 提取 handler 表（256/512/1024 个 entry）
+3. 静态分析每个 handler
+4. 重建 IR
+5. 转伪 C / Python
+```
+
+**还原为 Python**：
+```python
+def vm_emulate(bytecode):
+    stack = []
+    pc = 0
+    while pc < len(bytecode):
+        op = bytecode[pc]
+        if op == 0x01:  # ADD
+            stack.append(stack.pop() + stack.pop())
+        elif op == 0x02:  # XOR
+            stack.append(stack.pop() ^ stack.pop())
+        pc += 1
+    return stack
+```
+
+### 14.4 字符串加密还原
+
+```javascript
+// Frida 拦截 strcmp 打印明文
+Interceptor.attach(Module.findExportByName("libc.so", "strcmp"), {
+    onEnter: function(args) {
+        console.log("str1:", Memory.readUtf8String(args[0]));
+        console.log("str2:", Memory.readUtf8String(args[1]));
+    }
+});
+```
+
+### 14.5 虚假控制流去除
+
+```python
+# Z3 检查不透明谓词
+from z3 import *
+a = BitVec('a', 32)
+s = Solver()
+s.add(Not((a*a + a) % 2 == 0))
+print(s.check())  # unsat -> 恒真, 该分支是死代码
+```
+
+### 14.6 反混淆工具清单
+
+| 工具 | 用途 |
+|------|------|
+| `angr` | 符号执行 + CFG 重建 |
+| `Triton` | 动态符号执行 + 污点分析 |
+| `Z3` | 约束求解 + 不透明谓词 |
+| `IDA + IDA Python` | 交互式反混淆 |
+| `D810` | IDA 反混淆插件 |
+| `OLLVM-CFG` | OLLVM 反 CFF |
+| `r2 + r2pipe` | 批量处理 |
+
+---
+
+## 第 15 章 · 游戏外挂专章
+
+**目的**：游戏客户端经常被加壳、加反作弊保护。研究员要还原游戏逻辑（资产/协议/经济系统），hook 关键函数、改内存、伪造协议、绕过反作弊——所有技术点都在这一章。
+
+### 15.1 游戏引擎识别
+
+```bash
+# Unity IL2CPP
+strings <game> | grep -i "il2cpp"
+# 看到 GameAssembly.dll + global-metadata.dat
+
+# Unity Mono
+strings <game> | grep -iE "mono_|_mono"
+# 看到 Assembly-CSharp.dll
+
+# Unreal Engine
+strings <game> | grep -iE "ue4|unreal"
+# 看到 UE4Game.exe
+
+# Cocos2d
+strings <game> | grep -i "cocos2d"
+# 看到 libcocos2dcpp.so
+```
+
+### 15.2 Unity 客户端逆向
+
+**Unity Mono（DLL）**：
+```
+工具: dnSpy / ILSpy / dotPeek
+1. AssetStudio / Unity Studio 解包
+2. 找到 Assembly-CSharp.dll
+3. dnSpy 打开（直接看到 C# 源码）
+4. 修改代码
+5. 重新打包
+```
+
+**Unity IL2CPP**（C++）：
+```
+工具: Il2CppDumper + IDA
+1. Il2CppDumper 处理 GameAssembly.dll + global-metadata.dat
+2. 输出 dump.cs（含所有类/方法/字段签名）
+3. IDA 加载 GameAssembly.dll
+4. 导入 dump.cs 符号
+5. F5 反编译关键函数
+```
+
+**Il2CppDumper 用法**：
+```bash
+# Windows
+Il2CppDumper.exe GameAssembly.dll global-metadata.dat output_dir
+
+# IDA File → Script file → 选 ida_with_struct.py
+```
+
+### 15.3 Unreal Engine 客户端逆向
+
+```
+工具: Ghidra / IDA + UE4 SDK Dump + FModel
+1. 找 .pak + 解包
+2. 找 .usmap 符号映射
+3. IDA 加载主 .so/.dll
+4. 用 SDK Dump 还原符号
+5. F5 反编译
+```
+
+### 15.4 Cocos2d 客户端逆向
+
+```
+工具: Hopper / IDA + QuickBMS
+- libcocos2dcpp.so (Android)
+- libcocos2d.dll (Windows)
+找 .jsc 或 assets/main.js 反编译 JS
+```
+
+### 15.5 游戏协议还原
+
+**协议类型**：
+- WebSocket + JSON（最容易）
+- WebSocket + Protobuf
+- TCP + 自实现二进制
+- KCP（UDP 加速）
+- ENet（UE4 默认）
+
+**Protobuf 协议还原**：
+```bash
+# 1. 找 .proto 定义（游戏资源里）
+# 2. 没找到 → 抓包猜字段
+protoc --decode_raw < msg.bin
+
+# 3. IDA 找 protobuf 序列化函数
+# 4. 跟到协议 handler 提取字段
+```
+
+**协议还原模板**：
+```python
+import struct
+MAGIC = 0x12345678
+HEADER_SIZE = 8  # magic(4) + length(2) + cmd(2)
+
+def parse_packet(data):
+    if len(data) < HEADER_SIZE: return None
+    magic, length, cmd = struct.unpack(">IHH", data[:HEADER_SIZE])
+    return {"magic": magic, "length": length, "cmd": cmd, 
+            "body": data[HEADER_SIZE:HEADER_SIZE+length]}
+
+def build_packet(cmd, body):
+    return struct.pack(">IHH", MAGIC, len(body), cmd) + body
+```
+
+### 15.6 反作弊系统对抗
+
+**常见反作弊**：EAC / BattlEye / Vanguard / ACE / nProtect / Xigncode / 腾讯 TP / 网易 Anti-Cheat
+
+**反作弊检测点 + 绕过**：
+
+| 检测点 | 绕过 |
+|------|----|
+| 调试器检测 | ScyllaHide / TitanHide |
+| 内核驱动监控 | 找驱动漏洞 / 卸载驱动 |
+| 内存扫描特征 | 内存加密 + 改 key |
+| DLL 注入检测 | 模块隐藏（抹链表）|
+| 代码完整性 hash | 不改原代码 + 远程 hook |
+| 行为检测 | 模拟真实玩家数据 |
+| 硬件检测 | 改 hardware ID / hook |
+| 截图检测 | 拦截截图 API |
+| 虚拟机检测 | 用真机 / bypass |
+| Hypervisor 检测 | 隐藏 hypervisor |
+
+### 15.7 外挂技术分类
+
+**1. 内存修改**：
+```python
+import pymem
+pm = pymem.Pymem("game.exe")
+pm.write_int(pm.base_address + 0x123456, 99999)
+```
+
+**2. Hook**：
+```javascript
+Interceptor.attach(Module.findExportByName("GameLogic.dll", "TakeDamage"), {
+    onEnter: function(args) {
+        args[1] = ptr("0");  // 伤害 = 0
+    }
+});
+```
+
+**3. 加速/变速**：
+```c
+// hook timeGetTime / GetTickCount / QueryPerformanceCounter
+// 返回修改后的值
+```
+
+**4. 模拟器/私服**：
+- 重写客户端连接到自己服务器
+- 模拟服务器响应
+- 单机版
+
+**5. 协议伪造/重放**：
+- 抓包 + 改包 + 重发
+- 构造假消息
+
+**6. 透视/视野修改**：
+- hook DrawText / DrawModel
+- 改 FOV
+
+**7. 自动操作/脚本**：
+- 模拟键鼠
+- 图像识别 + 行为决策
+- AI 决策
+
+### 15.8 经济系统漏洞研究
+
+**常见漏洞类型**：
+- 充值金额篡改（客户端控制）
+- 重复购买（无幂等性）
+- 道具复制（弱去重）
+- 抽卡概率篡改
+- 时间戳溢出 / 负数刷金币
+- 整数溢出（道具数量）
+- 并发竞争（双花）
+- 离线模式漏洞
+
+**研究方法**：
+```
+1. 抓包分析支付/购买/抽奖接口
+2. IDA 跟踪客户端组装请求的代码
+3. 找客户端可控字段（金额/数量/ID）
+4. 测试篡改（自己改包发）
+5. 验证服务端是否信任客户端数据
+6. 总结漏洞 + 写 PoC
+```
+
+### 15.9 服务端验证绕过
+
+**纯客户端验证**：找验证函数 → patch / hook 返回 true
+
+**客户端+服务端双重验证**：
+- 找到客户端请求 → 自架服务端
+- 中间人劫持 + 修改响应
+
+### 15.10 帧同步/状态同步漏洞
+
+**帧同步漏洞**：重放攻击、时序攻击、状态注入
+
+**状态同步漏洞**：客户端发位置/伤害/扣血（应服务端算）
+
+**研究方法**：
+```
+1. Wireshark 抓包 + 协议还原
+2. 区分"客户端发送" vs "服务端广播"
+3. 找客户端控制字段
+4. 测试篡改
+5. 找服务端实际验证逻辑
+```
+
+### 15.11 游戏研究工具清单
+
+| 工具 | 用途 |
+|------|------|
+| `dnSpy` / `ILSpy` | Unity .NET 反编译 |
+| `Il2CppDumper` | Unity IL2CPP 还原 |
+| `AssetStudio` / `UnityStudio` | Unity 资源解包 |
+| `UnrealFinder` | UE 符号 dump |
+| `FModel` | UE 资源提取 |
+| `Ghidra` / `IDA Pro` | 主反编译 |
+| `frida` | Hook |
+| `pymem` / `Process Hacker` | 内存读写 |
+| `Wireshark` | 抓包 |
+| `protoc` | Protobuf 反编译 |
+| `flatc` | FlatBuffers 反编译 |
+| `QuickBMS` | 通用解包 |
+| `ScyllaHide` | 反 anti-debug |
+| `Scylla` / `ImportREC` | PE IAT 重建 |
+
+### 15.12 游戏研究工作流
+
+```
+1. 引擎识别 (file / strings)
+2. 资源解包 (AssetStudio / FModel)
+3. 客户端反编译 (IL2CPP → dump.cs → IDA)
+4. 协议抓包 + 还原 (Wireshark + Protobuf)
+5. 关键函数定位 (资产函数 / 战斗函数 / 验证函数)
+6. Hook + 内存读写 (Frida / pymem)
+7. 反作弊绕过 (ScyllaHide / 内核驱动)
+8. 服务端验证测试 (抓包改包 / 自架服务端)
+9. 漏洞总结 + PoC
+```
+
+### 15.13 关键函数 Hook 库（按功能分类）
+
+**目的**：把游戏功能拆成"模块"，每个模块列出典型函数 + hook 点。拿到新游戏按图索骥。
+
+| 功能 | 典型函数 | 引擎差异 |
+|------|---------|---------|
+| 战斗 | TakeDamage / ApplyDamage | UE: AActor::TakeDamage |
+| 物品 | AddItem / UseItem / GetItemById | IL2CPP: 偏移调用 |
+| 经济 | AddGold / SetGold / BuyItem | 跨引擎通用 |
+| 移动 | SetPosition / MoveTo | Unity: Transform.position_set |
+| 网络 | send / recv / sendto | syscall 级别 |
+| 渲染 | DrawText / DrawModel | UE: UCanvas / Unity: GUI |
+| 验证 | genSign / verifyToken / calcMD5 | 自实现 |
+| 任务 | AcceptQuest / CompleteQuest | 跨引擎通用 |
+| Buff | AddBuff / RemoveBuff / HasBuff | 跨引擎通用 |
+| 技能 | GetCooldown / ResetCooldown | 跨引擎通用 |
+
+**Frida hook 模板（战斗）**：
+```javascript
+Interceptor.attach(Module.findExportByName("GameAssembly", "TakeDamage"), {
+    onEnter: function(args) {
+        // args[1] = 伤害值
+        args[1] = ptr("0");  // 伤害清零
+    }
+});
+```
+
+**网络 hook 模板**：
+```javascript
+Interceptor.attach(Module.findExportByName("libc.so", "send"), {
+    onEnter: function(args) {
+        var buf = args[1];
+        var len = args[2].toInt32();
+        var data = Memory.readByteArray(buf, Math.min(len, 256));
+        console.log("send(" + len + "): " + hexdump(data, { length: 32 }));
+    }
+});
+```
+
+**Hook 库速查**：
+- 战斗：TakeDamage / ApplyDamage / OnHit / CalcDamage
+- 物品：AddItem / RemoveItem / UseItem / BuyItem
+- 经济：GainGold / SetGold / AddExp / LevelUp
+- 移动：SetPosition / MoveTo / SetRotation
+- 网络：send / recv / sendto / WSASend
+- 渲染：DrawText / DrawModel / GUI
+- 验证：genSign / verifyToken / calcMD5
+
+### 15.14 HWID 伪装与硬件指纹绕过
+
+**目的**：现代游戏反作弊会收集 HWID 封号。要会改硬件 ID 避开封禁、绕过硬件绑定授权。
+
+**Windows 采集点**：
+- WMI: Win32_Processor / BaseBoard / BIOS
+- 注册表: HKLM\...\MachineGuid / ProductId
+- 磁盘序列号（GetVolumeInformation）
+- 网卡 MAC（GetAdaptersInfo）
+- 显卡 ID（D3D9/DXGI）
+
+**Android 采集点**：
+- Build.SERIAL / Build.FINGERPRINT
+- ANDROID_ID（Settings.Secure.ANDROID_ID）
+- IMEI（TelephonyManager.getDeviceId）
+- MAC（NetworkInterface.getHardwareAddress）
+- 广告 ID
+
+**iOS 采集点**：
+- identifierForVendor (IDFV)
+- advertisingIdentifier (IDFA)
+- 设备名称 / 系统版本
+
+**Frida hook Android**：
+```javascript
+Java.perform(function() {
+    var Build = Java.use("android.os.Build");
+    Build.SERIAL.value = "FAKE_SERIAL";
+    var Secure = Java.use("android.provider.Settings$Secure");
+    Secure.getString.implementation = function(resolver, name) {
+        if (name.value === "android_id") return "fake_id";
+        return this.getString(resolver, name);
+    };
+    var Tel = Java.use("android.telephony.TelephonyManager");
+    Tel.getDeviceId.implementation = function() { return "353098765432109"; };
+});
+```
+
+**Windows 工具**：
+- Volume Serial Changer（磁盘序列号）
+- SMAC（MAC 改写）
+- HWID Changer（通用）
+- Frida hook 任意采集 API
+
+**iOS Theos Tweak**：
+```objc
+%hook UIDevice
+- (NSUUID *)identifierForVendor { return [NSUUID UUID]; }
+%end
+```
+
+### 15.15 资源替换与美术修改
+
+**目的**：游戏资源（模型/纹理/UI/字体/声音）经常被改。要会解包、改、重打包、绕 hash 校验。
+
+**Unity 资源替换**：
+- 工具：AssetStudio / UABEA / UnityPy
+- 流程：解包 → 改 → 重打包 → 改 hash 校验
+
+**UE 资源替换**：
+- 工具：FModel / UModel / QuickBMS
+- 流程：找 .pak → 解包 → 改资源 → 重新打包
+
+**Cocos2d 资源替换**：
+- .plist + .png 帧动画
+- .csb / .json 场景
+- .jsc / .lua / .luac 脚本
+
+**资源 hash 校验绕过**：
+```javascript
+Interceptor.attach(Module.findExportByName(null, "checkResourceHash"), {
+    onLeave: function(retval) { retval.replace(0); }
+});
+```
+
+**字体 / UI / Logo 替换**：
+- 字体：找 .ttf / .otf 替换
+- UI：替换 .atlas / .png
+- Logo：替换 Splash/Logo/ 目录图
+
+### 15.16 反反作弊驱动分析
+
+**目的**：EAC / BE / Vanguard 等会加载内核驱动。要会分析驱动、找漏洞、做内核级对抗。
+
+**常见驱动列表**：
+
+| 反作弊 | 驱动名 | 关键回调 |
+|--------|------|---------|
+| EAC | EasyAntiCheat.sys | ObRegisterCallbacks / PsSetCreateThreadNotifyRoutine |
+| BattlEye | bedaisy.sys | ObRegisterCallbacks |
+| Vanguard | vgk.sys | PsSetCreateThreadNotifyRoutine |
+| TP | TesMon.sys | 进程+线程+模块+驱动 |
+| NetEase | npprotect.sys | 进程+线程+驱动 |
+
+**驱动逆向方法**：
+```
+1. 找驱动文件（反作弊安装目录）
+2. IDA 加载（NT 驱动特殊 PE）
+3. 找 DriverEntry
+4. 找关键回调注册：ObRegisterCallbacks / PsSetCreateThreadNotifyRoutine
+5. 逆向回调实现（看监控什么）
+6. 找检测特征码 / hash
+```
+
+**DriverEntry 模板**：
+```c
+NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath) {
+    PsSetCreateProcessNotifyRoutineEx(ProcessCallback, FALSE);
+    PsSetCreateThreadNotifyRoutine(ThreadCallback);
+    OB_CALLBACK_REGISTRATION reg = {0};
+    reg.Altitude = ...;
+    reg.PreOperation = PreOpCallback;
+    ObRegisterCallbacks(&reg, &regHandle);
+    PsSetLoadImageNotifyRoutine(ImageCallback);
+    return STATUS_SUCCESS;
+}
+```
+
+**内核态对抗**：
+- 1. 找驱动漏洞（IOCTL dispatch 反汇编）
+- 2. 驱动加载顺序劫持
+- 3. 驱动签名绕过（BYOVD / DSE bypass）
+- 4. DKOM（直接修改 EPROCESS / ETHREAD）
+- 5. Hypervisor（VT-x 拦截反作弊访问）
+
+**BYOVD（Bring Your Own Vulnerable Driver）**：
+- 找已知有任意地址读写漏洞的已签名驱动
+- 经典：capcom.sys, gdrv.sys, iqvw64e.sys, dbutil_2_3.sys
+- 加载驱动（被信任因为有签名）
+- 用漏洞读/写内核内存
+
+**进程 / 线程 / 模块 / 驱动隐藏**：
+```c
+// DKOM 进程隐藏
+// 1. EPROCESS.ActiveProcessLinks 链表摘除
+// 2. ETHREAD.ThreadListEntry 摘除
+// 3. PsLoadedModuleList 摘除
+// 4. DriverSection->ListEntry 摘除
+```
+
+### 15.17 协议加密算法还原
+
+**目的**：现代游戏协议都是加密的。要还原加密算法、密钥协商、签名机制，才能构造合法报文。
+
+**协议加密模式**：
+```
+明文 → Protobuf 序列化 → 字段级 XOR/AES → 整体 AES-CBC/ChaCha20 → HMAC → TCP/WS/KCP/ENet → TLS
+```
+
+**常见加密模式**：
+- 简单 XOR（key 字符串）
+- AES-CBC + 固定 IV
+- 自实现 RC4
+- TEA / XTEA / XXTEA（4 个 uint32 key）
+- 国密 SM4（块 128 bit）
+- 自实现魔改
+
+**密钥还原方法**：
+```
+1. 字符串搜索：找 .rodata 的 key 字符串
+2. 动态跟踪：Frida hook AES / RC4 / TEA 标准库
+3. 静态逆向：IDA 跟到 key 来源
+4. 已知明文：发已知 payload → 抓密文 → XOR / 分析
+5. 自实现还原：反汇编手写算法
+```
+
+**Frida hook AES**：
+```javascript
+Interceptor.attach(Module.findExportByName("libcrypto.so", "AES_encrypt"), {
+    onEnter: function(args) {
+        console.log("AES key:", hexdump(args[0], { length: 16 }));
+        console.log("AES input:", hexdump(args[1], { length: 16 }));
+    }
+});
+```
+
+**协议签名还原**：
+```javascript
+Interceptor.attach(Module.findExportByName(null, "calcSign"), {
+    onEnter: function(args) {
+        this.arg0 = args[0].readUtf8String();
+        this.arg1 = args[1].readUtf8String();
+    },
+    onLeave: function(retval) {
+        console.log("sign =", retval.readUtf8String());
+    }
+});
+```
+
+**HTTPS 证书绑定绕过**：
+```javascript
+var CertificatePinner = Java.use("okhttp3.CertificatePinner");
+CertificatePinner.check.implementation = function(hostname, peerCerts) {
+    return;  // 不抛异常 = 通过
+};
+```
+
+### 15.18 AI/ML 模型在游戏外挂的应用
+
+**目的**：AI 模型能识别画面（自动瞄准/读图）、做决策（自动化）、反检测（行为模拟）。
+
+**视觉模型自动瞄准**：
+```python
+from ultralytics import YOLO
+import pyautogui
+
+model = YOLO("yolov8n.pt")
+def detect(frame):
+    results = model(frame, verbose=False)
+    for r in results:
+        for box in r.boxes:
+            if box.conf[0] > 0.7:
+                cx = (box.xyxy[0][0] + box.xyxy[0][2]) / 2
+                cy = (box.xyxy[0][1] + box.xyxy[0][3]) / 2
+                pyautogui.moveTo(cx, cy)
+```
+
+**ONNX 推理**：
+```python
+import onnxruntime as ort
+import numpy as np
+session = ort.InferenceSession("detector.onnx")
+def detect(image):
+    image = image.astype(np.float32) / 255.0
+    image = np.transpose(image, (2, 0, 1))
+    image = np.expand_dims(image, axis=0)
+    return session.run(None, {"input": image})
+```
+
+**强化学习决策（PPO）**：
+```python
+from stable_baselines3 import PPO
+
+class GameEnv(gym.Env):
+    def __init__(self):
+        self.action_space = spaces.Discrete(8)
+        self.observation_space = spaces.Box(0, 255, (84, 84, 3), dtype=np.uint8)
+    def step(self, action):
+        return capture_screen(), reward, done, info
+    def reset(self): return capture_screen()
+
+env = GameEnv()
+model = PPO("CnnPolicy", env, verbose=1)
+model.learn(total_timesteps=100000)
+```
+
+**AI 行为模拟**（让外挂像真人）：
+```python
+# 1. 鼠标轨迹 Bezier + 微抖动
+def human_mouse(start, end):
+    control = (start + end) / 2 + np.random.normal(0, 5, 2)
+    for p in bezier(start, control, end, num=20):
+        pyautogui.moveTo(*p)
+        time.sleep(np.random.uniform(0.005, 0.02))
+# 2. 操作间隔用高斯分布
+intervals = np.random.normal(0.1, 0.03, 1000)
+```
+
+### 15.19 网络层对抗（反流量分析）
+
+**目的**：反作弊会做流量机器学习分析。要会伪装流量，避免被识别为外挂。
+
+**流量伪装**：
+```bash
+# 1. 时间间隔模拟（人玩不是匀速的）
+intervals = np.random.normal(0.1, 0.03, 1000)
+# 2. 报文大小混合 + padding（16/32/64 倍数）
+# 3. 流量整形
+tc qdisc add dev eth0 root tbf rate 100mbit burst 32kbit latency 400ms
+# 4. 协议指纹混淆（TLS ClientHello）
+```
+
+**TLS 指纹伪装**：
+```python
+import utls
+conn = utls.connect("game.example.com", 443, client=utls.HelloChrome_120)
+```
+
+**加密协议混淆**：
+- Reality / VLESS 强抗检测
+- 流量跑在 HTTPS 内
+- DoH 防止 DNS 泄漏
+- 隧道走 CDN（Cloudflare Workers）
+
+**中间人检测对抗**：
+- hook 证书校验
+- 用合法代理 + 不破坏签名
+- 同步时间（ntpdate）
+- 顺序信息保留（透明代理）
+
+**流量录放**：
+```bash
+# tcpreplay 回放
+tcpreplay --intf1=eth0 game.pcap
+
+# scapy 改 + 重发
+from scapy.all import *
+pkts = rdpcap("game.pcap")
+for pkt in pkts:
+    pkt[IP].dst = "new_server_ip"
+    send(pkt)
+```
+
+### 15.20 完整游戏研究工作流（10 阶段）
+
+```
+阶段 0 · 立项
+  - 工单 + 工具准备（真机 / 模拟器 / 云手机）
+
+阶段 1 · 环境搭建
+  - 真机 / 模拟器 → 反检测内核 → Frida + Objection → Wireshark + Charles → SSL Pinning bypass
+
+阶段 2 · 分诊（5 分钟）
+  - file + strings 识别引擎 → 检查反作弊 → 跑 50+ 报文样本
+
+阶段 3 · 资源解包
+  - Unity → AssetStudio / UE → FModel / Cocos → .jsc .lua
+
+阶段 4 · 客户端反编译
+  - IL2CPP → Il2CppDumper → dump.cs → IDA / UE → SDK Dump → Ghidra
+
+阶段 5 · 协议还原
+  - 抓包 + 分类 → 找加密层 → 还原格式 → 还原业务字段
+
+阶段 6 · 关键函数定位
+  - 按功能分类 hook → 跑游戏 + Frida hook → 找验证 / 资产 / 战斗函数
+
+阶段 7 · 攻击面研究
+  - 篡改本地 / 篡改协议 / 重放 / 中间人 / 资源替换 / Hook + 脚本
+
+阶段 8 · 反作弊对抗
+  - 识别反作弊 → 用户态 hook 检测点 → 驱动 hook 检测点 → 行为检测点 → 绕开
+
+阶段 9 · 服务端研究
+  - 自架服务端 → 协议 fuzz → 经济系统逻辑漏洞 → 服务端校验逻辑
+
+阶段 10 · 报告 + 工具
+  - 写完整报告 → 工具化（keygen / 协议库 / 一键注入）→ 漏洞总结 + PoC → 提防御建议
+```
+
+### 15.21 增强报告模板
+
+```
+【游戏研究 / 外挂研究 / 协议研究 增强报告】CASE-YYYY-NNNN
+
+【样本】- 引擎 / 平台 / 客户端版本 / 协议版本 / 加密版本 / 服务端地址 / 哈希
+【环境】- 真机 / Frida / 抓包工具 / 代理
+【分诊】- 引擎指纹 / 反作弊 / 壳 / 保护
+【资源解包】- 工具 / 资源 / 还原度
+【反编译】- 工具 / 关键函数 / 关键算法 / 还原度
+【协议还原】- 类型 / 报文 / 加密 / 签名 / 关键接口
+【反作弊】- 驱动 / 用户态检测 / 驱动检测 / 行为检测 / 绕过方法
+【关键发现】- 资产 / 验证 / 网络函数 / 漏洞 / 可利用点
+【攻击路径】- 本地 / 协议 / 服务端 / 资源
+【Hook 库】- 战斗 / 经济 / 网络 / 验证 hook 完整代码
+【内存读写】- 关键地址 / 搜索关键字 / Patch 点
+【经济系统漏洞】- 充值篡改 / 重复购买 / 道具复制 / 抽卡 / 整数溢出 / 并发竞争
+【帧同步/状态同步】- 漏洞 + PoC
+【资源替换】- UI / 字体 / Logo / 模型 / 纹理 / 资源 hash 绕过
+【HWID 伪装】- 修改点 / 工具
+【驱动对抗】- 驱动列表 / 漏洞 / BYOVD / DKOM
+【协议加密还原】- 算法 / 密钥 / 签名 / 还原代码
+【AI/ML 应用】- 视觉模型 / 决策模型 / 训练
+【流量对抗】- TLS 指纹 / 流量整形 / 隧道
+【验证】- 测试 + PoC + 录像
+【工具化】- 协议库 / 一键注入 / keygen
+【防御建议】- 客户端加固 / 服务端加固 / 反作弊加固
+【下一步】- 深入研究 / 横向扩展 / 沉淀方法
+```
+
+---
+
+## 第 16 章 · 报告写作规范
 
 **目的**：报告标准化才能复用。
 
-### 13.1 章节固定
+### 16.1 章节固定
 
 ```
 【任务卡】
@@ -778,19 +1655,19 @@ checksec --file=target_packed
 【参考资料】
 ```
 
-### 13.2 证据链要求
+### 16.2 证据链要求
 
 - 每个结论配证据：地址、字符串、伪代码、运行时数据
 - 脚本独立可跑（`python3 script.py` 直接出结果）
 - 哈希记录
 
-### 13.3 替代方案要求
+### 16.3 替代方案要求
 
 - 工具失效时记录
 - 多解并列
 - 失败也记录
 
-### 13.4 报告归档
+### 16.4 报告归档
 
 - 路径：`/lab/reports/YYYY-MM-DD-CASE-YYYY-NNNN.md`
 - 元数据：写入 `/lab/index.md`
@@ -798,9 +1675,9 @@ checksec --file=target_packed
 
 ---
 
-## 第 14 章 · 内部 KB 速查
+## 第 17 章 · 内部 KB 速查
 
-### 14.1 架构调用约定
+### 17.1 架构调用约定
 
 | 架构 | 整数参数 | 返回值 | 栈对齐 |
 |------|---------|--------|-------|
@@ -810,7 +1687,7 @@ checksec --file=target_packed
 | mips o32 | $a0-$a3 | $v0 | - |
 | riscv64 | a0-a7 | a0 | 16 |
 
-### 14.2 文件 magic 速查
+### 17.2 文件 magic 速查
 
 | Magic | 格式 |
 |------|------|
@@ -827,7 +1704,7 @@ checksec --file=target_packed
 | 47 49 46 38 | GIF |
 | 25 50 44 46 | PDF |
 
-### 14.3 反调试特征与对抗
+### 17.3 反调试特征与对抗
 
 | 检测 | 对抗 |
 |------|-----|
@@ -838,7 +1715,7 @@ checksec --file=target_packed
 | rdtsc 时序 | patch rdtsc |
 | /proc/self/status TracerPid | hook open |
 
-### 14.4 加密算法常量
+### 17.4 加密算法常量
 
 | 算法 | 常量 |
 |------|-----|

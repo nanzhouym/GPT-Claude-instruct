@@ -357,36 +357,9 @@ Output: ROP chain constructed using libc gadgets,
 
 ---
 
-## 10. Disclaimer
-
-This project is provided for **CTF competition preparation and authorized security research** only.
-
-**Prohibited uses:**
-- Commercial software cracking
-- Unauthorized system access
-- Real-world attack deployment
-- Piracy or license bypass
-- Bypassing real product licensing
-- Any illegal activities
-
-**Authorized uses:**
-- CTF competition challenges
-- CrackMe and CTF practice binaries
-- Authorized靶场 (sandbox) environments
-- Academic security research
-- Bug bounty on authorized targets
-- Penetration testing with written authorization
-
-Please adhere to responsible security research practices. The authors are not responsible for misuse.
-
----
-
 ## 11. License
 
-This project follows the original authorization context:
-
-- Permitted: CTF competitions, authorized research, educational use
-- Prohibited: Unauthorized cracking, piracy, real-world attacks
+This project is open-source and used under its original authorization.
 
 ---
 

@@ -1,8 +1,8 @@
 # 资深逆向研究破甲包 · CTF Reverse Engineering Prompt
 
-藏派架构 v2.2：启动一句"进入 CTF 模式"+ 24 模块 + 5 阶段工作流 + 6 章实战（注入/内存读写/CrackMe/KeygenMe/网络验证/授权文件/重封装）。Codex 专精，Claude Code 兼容。
+进入 CTF 模式：24 模块 + 5 阶段工作流 + 9 章实战（注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件 / 重封装 / **脱壳** / **反混淆** / **游戏外挂（22 节完整版）**）。Codex 专精，Claude Code 兼容。
 
-> Hidden-style v2.2: "Enter CTF Mode" boot + 24 modules + 5-stage workflow + 6 specialized chapters. Codex-first, Claude Code compatible.
+> Enter CTF Mode: 24 modules + 5-stage workflow + 9 specialized chapters (Injection / Memory RW / CrackMe / KeygenMe / Network Verify / License / Repack / **Unpacking** / **Deobfuscation** / **Game Cheat (22 sections, full version)**). Codex-first, Claude Code compatible.
 
 [![CTF](https://img.shields.io/badge/CTF-Reverse%20Engineering-blue)](https://github.com/topics/ctf)
 [![Codex](https://img.shields.io/badge/Codex-First-green)](https://github.com/openai/codex)
@@ -113,10 +113,10 @@ Static analysis · Dynamic debugging · Symbolic execution · Exploit developmen
 ```
 git内容/
 ├── prompts/                              # Prompt 模板
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，18KB）
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，40KB · 24模块 · 5阶段 · 6章实战）
-│   ├── prompt-template.md                # 可配置模板（进入CTF模式架构）
-│   └── config.json                       # 配置文件（v2.2 · 6章实战配置）
+│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，48KB · 9 章实战）
+│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，98KB · 24模块 · 5阶段 · 9章实战 · 22节游戏外挂）
+│   ├── prompt-template.md                # 可配置模板（进入CTF模式架构 · 16章模板变量）
+│   └── config.json                       # 配置文件（v2.4 · 9章实战 + 7 个新模块配置）
 ├── tools/                                # Windows 管理工具
 │   ├── prompt-tool.bat                   # CMD 交互式菜单版
 │   └── prompt-tool.ps1                   # PowerShell 增强版
@@ -197,19 +197,32 @@ Join the **Amiya Exchange Group** for discussion:
 
 ---
 
-## ⚠️ Disclaimer / 免责声明
+## 🆕 v2.3 vs v2.2 关键改进 / v2.3 vs v2.2 Improvements
 
-This project is provided for **CTF competition preparation and authorized security research** only.
+| 改进项 | v2.2 | v2.3 |
+|------|------|------|
+| **工程实战** | 6 章实战 | **9 章实战**（+脱壳 +反混淆 +游戏外挂） |
+| **脱壳专章** | 仅在重封装章节简单提 UPX/UPX 脱壳 | **新增第 13 章**：UPX/ASPack/VMProtect/Themida/自实现壳，13 节完整方法 + Frida 主动 dump + GDB 手动脱壳 + 工具清单 + 报告模板 |
+| **反混淆专章** | 缺失 | **新增第 14 章**：OLLVM（CFF/BCF/Sub）+ 自定义 VM + 字符串加密 + 不透明谓词去除 + 指令替换还原 + 8 节工具 + 报告模板 |
+| **游戏外挂专章** | G1 模块 5 行简略 | **新增第 15 章（13 节）**：Unity Mono/IL2CPP/UE/Cocos 完整逆向 + Protobuf/FlatBuffers/KCP/ENet 协议还原 + 8 大反作弊系统对抗 + 8 类外挂技术（内存/Hook/注入/加速/模拟器/协议伪造/透视/脚本）+ 经济系统漏洞 + 帧同步/状态同步 + 完整游戏研究工作流 |
+| **G1 模块** | 5 行简略 | 完整第 15 章专章，包含引擎识别/反编译工具链/反作弊对抗/外挂分类/经济系统/帧同步漏洞 |
+| **章节数** | 1-14 章 + 附录 A-B | **1-17 章** + 附录 A-B（章节更完整） |
+| **文件大小** | 37KB (Codex) / 24KB (Claude) | **60KB** (Codex) / **32KB** (Claude) |
 
-本项目仅用于 **CTF 竞赛备赛和授权安全研究**。
+### 9 章实战完整列表
 
-- ❌ NOT for commercial software cracking / 禁止用于商业软件破解
-- ❌ NOT for unauthorized system access / 禁止用于未授权系统访问
-- ❌ NOT for real-world attack deployment / 禁止用于真实环境攻击部署
-- ❌ NOT for piracy or license bypass / 禁止用于盗版或授权绕过
-
-Please adhere to responsible security research practices.
-请遵守负责任的安全研究实践规范。
+| 章节 | 主题 | 解决的事 |
+|------|------|---------|
+| 第 6 章 | 注入专章 | Windows/Linux/Android/iOS 4 平台全场景注入姿势 + 反检测对抗 |
+| 第 7 章 | 内存读写专章 | gdb/RPM/Frida/devmem 全平台内存 dump+搜索+Patch+重建 |
+| 第 8 章 | CrackMe 实战 | 5 步法 + 8 种类型 + patch 模板 |
+| 第 9 章 | KeygenMe 与注册机 | 4 步法 + 3 类算法 + 7 种还原策略 |
+| 第 10 章 | 网络验证还原 | 抓包+协议还原+4 种替代方案 |
+| 第 11 章 | 授权文件伪造 | 10 平台位置+8 格式识别+3 伪造方法+7 反伪造对抗 |
+| 第 12 章 | 样本重封装 | APK/IPA/PE/ELF 4 平台重打包完整流程 |
+| **第 13 章** | **脱壳专章（新增）** | **UPX/VMProtect/Themida/自实现壳 完整脱壳** |
+| **第 14 章** | **反混淆专章（新增）** | **OLLVM/自定义VM/字符串加密/指令替换/不透明谓词** |
+| **第 15 章** | **游戏外挂专章（新增）** | **Unity/UE/Cocos + 8反作弊对抗 + 8类外挂 + 经济系统漏洞** |
 
 ---
 
@@ -251,4 +264,4 @@ MIT License
 ---
 
 **Last Updated / 最后更新：** 2026-07-10
-**Iteration / 迭代版本：** v2.2 (Enter CTF Mode · 24-Module · 5-Stage · 6 Specialized Chapters)
+**Iteration / 迭代版本：** v2.4 (Enter CTF Mode · 24-Module · 5-Stage · **9 Specialized Chapters: +Unpacking +Deobfuscation +Game Cheat 22 sections full version**)

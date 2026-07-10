@@ -156,6 +156,152 @@
 
 ---
 
+{{UNPACKING}}
+# 脱壳专章 (新增)
+# UPX:     upx -d + 手动 + Frida dump
+# ASPack:  通用脱壳机
+# VMProtect: VMHunt + handler 模式库 + 半脱壳
+# Themida: StrongOD / ScyllaHide + 找退出点 + IAT 重建
+# 自实现: 静态分析壳 + 动态断在解密后 + dump + 重建 PE/ELF
+# 工具:   upx / Scylla / ImportREC / VMHunt / StrongOD / ScyllaHide / TitanHide
+{{/UNPACKING}}
+
+---
+
+{{DEOBFUSCATION}}
+# 反混淆专章 (新增)
+# CFF:     状态变量 + switch, 用 angr / Triton 收集真实块 + 拼接
+# BCF:     不透明谓词, 用 Z3 验证 (恒真=死代码)
+# Sub:     指令替换, IDA Python 模式识别还原 (a*2 → a+a)
+# 字符串:  Frida 拦截 strcmp 打印明文
+# 自定义VM: 找 dispatcher + 提取 handler 表 + 静态分析 + 重建 IR
+# 工具:   angr / Triton / Z3 / IDA Python / D810 / OLLVM-CFG
+{{/DEOBFUSCATION}}
+
+---
+
+{{GAME_MODULES}}
+# 游戏外挂专章 (新增并扩充 G1) - 22 节完整版
+# 引擎识别:    Unity Mono / IL2CPP / UE / Cocos / Godot
+# Unity:      dnSpy / ILSpy + Il2CppDumper + dump.cs + IDA
+# UE:         UnrealFinder / UE4-SDK-Dumper + FModel + .pak 解包
+# Cocos:      Hopper + QuickBMS + .jsc 反编译
+# 协议还原:   WebSocket/Protobuf/TCP/KCP/ENet
+# 反作弊:     EAC / BattlEye / Vanguard / ACE / nProtect / Xigncode / TP / 网易
+# 外挂类型:   内存修改 / Hook / 注入 / 加速 / 模拟器 / 协议伪造 / 透视 / 脚本
+# 经济系统:   充值篡改 / 道具复制 / 抽卡 / 并发竞争 / 整数溢出
+# 帧同步/状态同步漏洞
+{{/GAME_MODULES}}
+
+---
+
+{{GAME_HOOK_LIBRARY}}
+# 游戏 Hook 库 (新增 15.14)
+# 战斗:     TakeDamage / ApplyDamage / OnHit / CalcDamage / IsCritical / OnDeath
+# 物品:     AddItem / RemoveItem / UseItem / BuyItem / SellItem
+# 经济:     GainGold / SetGold / AddExp / LevelUp / DeductGold
+# 移动:     SetPosition / MoveTo / SetRotation / SetVelocity
+# 网络:     send / recv / sendto / WSASend (syscall 级别)
+# 渲染:     DrawText / DrawModel / GUI_OnGUI (UE: UCanvas)
+# 验证:     genSign / verifyToken / calcMD5 / calcHMAC
+# 任务:     AcceptQuest / CompleteQuest / GetQuestState
+# Buff:     AddBuff / RemoveBuff / HasBuff / GetBuffStack
+# 技能:     GetCooldown / ResetCooldown / ReduceCooldown / ConsumeMP
+{{/GAME_HOOK_LIBRARY}}
+
+---
+
+{{HWID_SPOOFING}}
+# HWID 伪装 (新增 15.15)
+# Windows 采集: WMI / 注册表 MachineGuid / 磁盘序列号 / 网卡 MAC / 显卡 ID
+# Android 采集: Build.SERIAL / ANDROID_ID / IMEI / MAC / 广告 ID
+# iOS 采集:     identifierForVendor / advertisingIdentifier / 设备名
+# 工具:         Volume Serial Changer / SMAC / Magisk+props / Frida hook 采集 API
+# iOS Tweak:    %hook UIDevice → identifierForVendor
+# Frida hook:   Build.SERIAL.value = "FAKE" / Settings.Secure.getString / TelephonyManager.getDeviceId
+{{/HWID_SPOOFING}}
+
+---
+
+{{RESOURCE_REPLACE}}
+# 资源替换 (新增 15.16)
+# Unity:  AssetStudio / UABEA / UnityPy → 改 → 重打包 → 改 hash
+# UE:     FModel / UModel / QuickBMS → 找 .pak → 改 → 重打包
+# Cocos:  .plist + .png / .csb / .jsc / .lua / .luac
+# 字体:   .ttf / .otf 替换
+# UI:     .atlas / .png 替换
+# Logo:   Splash/Logo/ 目录
+# 资源 hash 校验绕过: hook checkResourceHash / hook verifyCRC / 抹 hash 表
+{{/RESOURCE_REPLACE}}
+
+---
+
+{{ANTI_CHEAT_DRIVER}}
+# 反反作弊驱动分析 (新增 15.17)
+# 驱动列表:
+#   EAC       → EasyAntiCheat.sys    (ObRegisterCallbacks)
+#   BE        → bedaisy.sys          (ObRegisterCallbacks)
+#   Vanguard  → vgk.sys              (PsSetCreateThreadNotifyRoutine)
+#   TP        → TesMon.sys / TpSafe  (进程+线程+模块+驱动)
+#   NetEase   → npprotect.sys        (进程+线程+驱动)
+#
+# 驱动逆向: IDA + WinDbg + Driver View → 找 DriverEntry → 找回调
+# 关键回调: PsSetCreateProcessNotifyRoutineEx / PsSetCreateThreadNotifyRoutine
+#           ObRegisterCallbacks / PsSetLoadImageNotifyRoutine
+#           CmRegisterCallback / FltRegisterFilter / EtwRegister
+#
+# 内核对抗: IOCTL 漏洞 / 驱动加载顺序劫持 / BYOVD / DSE bypass
+#           DKOM (EPROCESS/ETHREAD 链表摘除) / Hypervisor (VT-x)
+#
+# BYOVD 经典: capcom.sys / gdrv.sys / iqvw64e.sys / dbutil_2_3.sys
+{{/ANTI_CHEAT_DRIVER}}
+
+---
+
+{{PROTOCOL_CRYPTO}}
+# 协议加密算法还原 (新增 15.18)
+# 加密模式: XOR / AES-CBC / ChaCha20 / RC4 / TEA / XTEA / XXTEA / SM4 / 自实现
+# 协议栈:   Protobuf → 字段级 XOR → 整体 AES → HMAC → TCP/WS/KCP/ENet → TLS
+#
+# 密钥还原:
+#   1. 字符串搜索: .rodata 找 key 字符串
+#   2. 动态跟踪: Frida hook AES_encrypt / RC4 / MD5 / SHA 标准库
+#   3. 静态逆向: IDA 跟到 key 来源
+#   4. 已知明文: 发已知 payload → 抓密文 → XOR
+#   5. 自实现还原: 反汇编手写
+#
+# 协议签名: calcSign(arg0, arg1, ...) → 返回 MD5/HMAC
+# 协议版本: client_ver / proto_ver / enc_ver / platform 必须匹配
+# HTTPS Pinning: OkHttp CertificatePinner.check 绕过
+{{/PROTOCOL_CRYPTO}}
+
+---
+
+{{AI_ML_CHEAT}}
+# AI/ML 在游戏外挂的应用 (新增 15.19)
+# 视觉模型: YOLOv8 自动瞄准 / ONNX Runtime 推理
+# 决策模型: PPO / DQN 强化学习
+# 大模型:   GPT / Claude NPC 对话
+# 反检测:   Bezier 鼠标轨迹 / 高斯操作间隔 / 错误率模拟
+# AI Bot:   截屏 → 视觉感知 → 决策 → 执行
+# 训练:     stable-baselines3 / 自建 gym 环境
+{{/AI_ML_CHEAT}}
+
+---
+
+{{NETWORK_EVASION}}
+# 网络层对抗 / 流量伪装 (新增 15.20)
+# 流量伪装: 时间间隔高斯分布 / 报文 padding / tc 整形 / TLS 指纹混淆
+# TLS 伪装: uTLS HelloChrome_120 / HelloIOS_14
+# 加密协议: Reality / VLESS / DoH / CDN 隧道
+# MITM 绕过: hook 证书校验 / 同步时间 / 顺序保留
+# 流量录放: tcpreplay / scapy 改 + 重发
+# 推荐栈:   客户端 → VLESS+Reality → 海外 VPS → 原服务器
+#           或:    客户端 → CDN (Cloudflare) → 自建反代
+{{/NETWORK_EVASION}}
+
+---
+
 {{OUTPUT_STYLE}}
 # 报告写作规范
 #
