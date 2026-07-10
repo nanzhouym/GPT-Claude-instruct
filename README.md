@@ -1,9 +1,9 @@
 # 甲方安全实验室 · 内部技术资料
 # Reverse Engineering Field Manual
 
-进入 CTF 模式：24 模块 + 5 阶段工作流 + 14 章实战（注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件 / 重封装 / **脱壳** / **反混淆** / **游戏外挂（22 节完整版）** / **Web 渗透** / **内网渗透** / **权限提升与持久化** / **漏洞利用工程** / **红队基础设施**）。Codex 专精，Claude Code 兼容。
-
-> Field Manual: 24 modules + 5-stage workflow + 14 specialized chapters (Injection / Memory RW / CrackMe / KeygenMe / Network Verify / License / Repack / **Unpacking** / **Deobfuscation** / **Game Cheat (22 sections, full version)** / **Web Pentest** / **Internal Pentest** / **Privilege Escalation & Persistence** / **Exploit Engineering** / **Red Team Infrastructure**). Codex-first, Claude Code compatible.
+> v2.6 瘦核心架构：5 大类 Signal 路由 + 31 章 KB 外置（28 章实战 + 3 章补充）。Codex 专精，Claude Code 兼容。
+>
+> Field Manual v2.6 (slim core + KB externals): 5-category Signal routing + 31 KB chapters. Codex-first, Claude Code compatible.
 
 [![CTF](https://img.shields.io/badge/CTF-Reverse%20Engineering-blue)](https://github.com/topics/ctf)
 [![Codex](https://img.shields.io/badge/Codex-First-green)](https://github.com/openai/codex)
@@ -113,20 +113,25 @@ Static analysis · Dynamic debugging · Symbolic execution · Exploit developmen
 
 ```
 git内容/
-├── prompts/                              # Prompt 模板
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，75KB · 14 章实战）
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，152KB · 24模块 · 5阶段 · 22章实战 · 22节游戏外挂）
-│   ├── prompt-template.md                # 可配置模板（进入CTF模式架构 · 21章模板变量）
-│   └── config.json                       # 配置文件（v2.5 · 14章实战 + 11个新模块配置）
-├── tools/                                # Windows 管理工具
-│   ├── prompt-tool.bat                   # CMD 交互式菜单版
-│   └── prompt-tool.ps1                   # PowerShell 增强版
-├── docs/                                 # 详细文档
-│   ├── README_en.md                      # English full documentation
-│   └── README_zh.md                      # 中文完整文档
-├── images/                               # 图片资源
+├── AGENTS.md                              # 瘦核心入口（11KB · 5大类Signal路由）
+├── prompts/                               # Prompt 模板
+│   ├── Claude-CTF-Reverse-Prompt.md       # Claude Code 兼容版（10.5KB 瘦核心 · 工号 RE-7X-2024-CC）
+│   ├── Codex-CTF-Reverse-Prompt.md        # Codex 主推版（10.5KB 瘦核心 · 工号 RE-7X-2024）
+│   ├── prompt-template.md                 # 可配置模板（无显式触发词 · 21 模板变量）
+│   ├── config.json                        # 配置文件（v2.6.0 · 5 大类 Signal 路由）
+│   └── kb/                                # 31 章 KB 外置（28 章实战 + 3 章补充）
+│       ├── 01_triage.md ~ 17_kb_quick_ref.md
+│       └── 18_web_pentest.md ~ 31_bloodhound_queries.md
+├── tools/                                 # Windows 管理工具
+│   ├── prompt-tool.bat                    # CMD 交互式菜单版
+│   └── prompt-tool.ps1                    # PowerShell 增强版
+├── docs/                                  # 详细文档 + 历史归档
+│   ├── README_en.md                       # English full documentation
+│   ├── README_zh.md                       # 中文完整文档
+│   └── Codex-CTF-Reverse-Prompt-FULL.md   # v2.5 完整版归档（156KB · 触发词历史保留）
+├── images/                                # 图片资源
 │   └── b2b81cd407357da51e7990223fe6cf9d.png
-└── README.md                             # 主文档
+└── README.md                              # 主文档
 ```
 
 ---
@@ -172,7 +177,7 @@ Join the **Amiya Exchange Group** for discussion:
 
 ### 工作手册四大机制 / Four Field-Manual Mechanisms
 
-1. **派单锚定（Work-Order Anchoring）** — 靠"研究员身份 + 实验室场景 + 工单系统"三件套。开头把"工号 RE-7X-2024"、"工作站 /lab"、"派单 CASE-YYYY-NNNN"、"归档 /lab/reports/"钉死，所有判断自然在授权框架内。读起来就是一份真实的实验室内部手册。
+1. **身份锚定** — 靠"研究员身份 + 实验室场景 + 工单系统"三件套。开头把"工号 RE-7X-2024"、"工作站 /lab"、"派单 CASE-YYYY-NNNN"、"归档 /lab/reports/"钉死，所有判断自然在授权框架内。读起来就是一份真实的实验室内部手册。
 
 2. **工作语言（Working Language）** — 纯技术流的工作手册语言："研究员助理职责"、"派单系统"、"分诊手册"、"5 阶段工作流"。技术内容直说，不掺任何元描述。
 
@@ -229,7 +234,7 @@ Join the **Amiya Exchange Group** for discussion:
 
 | 改进项 | v2.1 | v2.2 |
 |------|------|------|
-| **启动方式** | 实验室概况 + 派单系统 + 工号 + 派单格式（冗长） | **一句"进入 CTF 模式"** + 3 段大白话讲清楚 |
+| **启动方式** | 实验室概况 + 派单系统 + 工号 + 派单格式（冗长） | **3 段大白话**讲清楚（身份 + 任务 + 交付方式），无显式触发词 |
 | **6 章实战** | 注入/内存读写散落，未专章 | **新增 6 大专章**：注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件伪造 / 样本重封装 |
 | **章节结构** | 0-10 章 + 附录 A-C | 1-14 章 + 附录 A-B（更扁平化） |
 | **注入专章** | R2/M1/M2 各提一句 | **独立第 6 章**：Windows 7 种方法 + Linux 5 种 + Android 8 种 + iOS 5 种 + 反注入对抗 |

@@ -8,10 +8,10 @@
 3. [File Structure](#3-file-structure)
 4. [Prompt Templates](#4-prompt-templates)
 5. [Windows Tools](#5-windows-tools)
-6. [CTF Categories](#6-ctf-categories)
+6. [5-Category Signal Routing](#6-5-category-signal-routing)
 7. [Toolchain Reference](#7-toolchain-reference)
 8. [Configuration](#8-configuration)
-9. [v2.5 Release Notes](#9-v25-release-notes)
+9. [v2.6 Release Notes](#9-v26-release-notes)
 10. [License](#10-license)
 11. [Community](#11-community)
 
@@ -21,12 +21,13 @@
 
 This repository is the **internal field manual of an in-house security lab**, designed for dual-framework compatibility — working seamlessly with both **Claude Code** (Anthropic) and **Codex** (OpenAI) CLI agents.
 
-### Key Features
+### Key Features (v2.6 Slim Core Architecture)
 
-- **Field Manual Architecture**: Workstation ID `RE-7X-2024` + `/lab` workstation + work-order system + `/lab/reports/` archive — three-pillar anchoring in pure work-manual language
-- **24-Module KB Routing**: R1-Z1+T1 full coverage (Linux/Windows/Apple/Android/iOS/WASM/IoT/Forensics/Stego/Network/Web/Browser/Crypto/Formal/AI/Supply/Web3/Game/Kernel/Fuzzing/Triage)
-- **5-Stage Workflow**: Triage → Static Analysis → Dynamic Analysis → Algorithm Recovery → Exploit/PoC
-- **14 Specialized Chapters**: Injection / Memory RW / CrackMe / KeygenMe / Network Verify / License / Repack / Unpacking / Deobfuscation / Game Cheat (22 sections full) / **Web Pentest** / **Internal Pentest** / **Privilege Escalation & Persistence** / **Exploit Engineering** / **Red Team Infrastructure**
+- **Slim Core Entry**: `AGENTS.md` (11KB) + `Codex-CTF-Reverse-Prompt.md` (10.5KB · Work-ID RE-7X-2024) + `Claude-CTF-Reverse-Prompt.md` (10.5KB · Work-ID RE-7X-2024-CC)
+- **31 KB Chapters Externally Loaded**: `prompts/kb/01-31`, slim core only has routing + index, full content loaded on demand
+- **5-Category Signal Routing**: A Static / B Crack & Recover / C Exploit / D Pentest / E Specialized (triage by user intent, not by sample format)
+- **5-Stage Workflow**: Triage → Static → Dynamic → Algorithm → Exploit/PoC
+- **No Explicit Trigger Words**: Identity-only boot, no "X mode" pattern
 - **6 Tool Patterns + 12 Fallback Chains**: IDA failed → Ghidra/r2, Frida detected → frida-gadget, etc.
 - **21 Template Variables**: From boot anchor to pentest chapter — fully configurable
 - **9 Persona Work-IDs**: Senior Researcher / Research Assistant / Web Pentest Specialist / Red Team Specialist / Mobile Specialist / IoT Specialist / Cloud-Native Specialist / AI Specialist / CrackMe Specialist
@@ -84,24 +85,29 @@ powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1
 
 ```
 git内容/
-├── prompts/                              # Prompt templates
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code version (compat, 75KB · 14 specialized chapters)
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex version (primary, 152KB · 24 modules · 5 stages · 22 chapters)
-│   ├── prompt-template.md                # Configurable template (21 variables)
-│   └── config.json                       # Configuration (v2.5.0 · 14 chapters + 11 modules)
+├── AGENTS.md                              # Slim core entry (11KB · 5-category Signal routing)
+├── prompts/                               # Prompt templates
+│   ├── Claude-CTF-Reverse-Prompt.md       # Claude Code compatibility (10.5KB slim core · Work-ID RE-7X-2024-CC)
+│   ├── Codex-CTF-Reverse-Prompt.md        # Codex primary (10.5KB slim core · KB externals on demand)
+│   ├── prompt-template.md                 # Configurable template (no trigger words · 21 variables)
+│   ├── config.json                        # Configuration (v2.6.0 · 5-category Signal routing)
+│   └── kb/                                # 31 KB externals (28 chapters + 3 supplements)
+│       ├── 01_triage.md ~ 17_kb_quick_ref.md
+│       └── 18_web_pentest.md ~ 31_bloodhound_queries.md
 │
-├── tools/                                # Windows management tools
-│   ├── prompt-tool.bat                   # CMD batch script
-│   └── prompt-tool.ps1                   # PowerShell enhanced version
+├── tools/                                 # Windows management tools
+│   ├── prompt-tool.bat                    # CMD batch script
+│   └── prompt-tool.ps1                    # PowerShell enhanced version
 │
-├── docs/                                 # Documentation
-│   ├── README_en.md                      # English documentation
-│   └── README_zh.md                      # Chinese documentation
+├── docs/                                  # Documentation + historical archive
+│   ├── README_en.md                       # English documentation
+│   ├── README_zh.md                       # Chinese documentation
+│   └── Codex-CTF-Reverse-Prompt-FULL.md   # v2.5 full archive (156KB)
 │
-├── images/                               # Images and assets
+├── images/                                # Images and assets
 │   └── b2b81cd407357da51e7990223fe6cf9d.png  # QQ Group QR Code
 │
-└── README.md                             # Main README
+└── README.md                              # Main README
 ```
 
 ---

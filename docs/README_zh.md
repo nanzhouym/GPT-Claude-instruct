@@ -8,10 +8,10 @@
 3. [文件结构](#3-文件结构)
 4. [Prompt 模板](#4-prompt-模板)
 5. [Windows 工具](#5-windows-工具)
-6. [CTF 类别](#6-ctf-类别)
+6. [5 大类 Signal 路由](#6-5-大类-signal-路由)
 7. [工具链参考](#7-工具链参考)
 8. [配置说明](#8-配置说明)
-9. [v2.5 改进说明](#9-v25-改进说明)
+9. [v2.6 改进说明](#9-v26-改进说明)
 10. [许可证](#10-许可证)
 11. [社区](#11-社区)
 
@@ -21,12 +21,13 @@
 
 本仓库是 **甲方安全实验室内部技术资料**，专为双框架兼容性设计 —— 可在 **Claude Code**（Anthropic）和 **Codex**（OpenAI）CLI 智能体上无缝运行。
 
-### 核心特性
+### 核心特性（v2.6 瘦核心架构）
 
-- **工作手册架构**：工号 RE-7X-2024 + 工作站 /lab + 派单系统 + 归档 /lab/reports/ 三件套锚定，纯工作手册语言
-- **24 模块 KB 路由**：R1-Z1+T1 完整覆盖（Linux/Windows/Apple/Android/iOS/WASM/IoT/Forensics/Stego/Network/Web/Browser/Crypto/Formal/AI/Supply/Web3/Game/Kernel/Fuzzing/Triage）
-- **5 阶段工作流**：Triage → Static Analysis → Dynamic Analysis → Algorithm Recovery → Exploit/PoC
-- **14 章实战专章**：注入 / 内存读写 / CrackMe / KeygenMe / 网络验证 / 授权文件 / 重封装 / 脱壳 / 反混淆 / 游戏外挂（22 节完整版）/ **Web 渗透** / **内网渗透** / **权限提升与持久化** / **漏洞利用工程** / **红队基础设施**
+- **瘦核心入口**：`AGENTS.md`（11KB）+ `Codex-CTF-Reverse-Prompt.md`（10.5KB · 工号 RE-7X-2024）+ `Claude-CTF-Reverse-Prompt.md`（10.5KB · 工号 RE-7X-2024-CC）
+- **31 章 KB 外置按需加载**：`prompts/kb/01-31`，瘦核心只放路由 + 索引，详细内容按需加载
+- **5 大类 Signal 路由**：A 静态分析 / B 破解还原 / C 漏洞利用 / D 渗透测试 / E 专题（按用户意图分诊，不按样本格式硬分类）
+- **5 阶段工作流**：Triage → Static → Dynamic → Algorithm → Exploit/PoC
+- **无显式触发词**：纯身份陈述，不出现"X 模式"句式
 - **6 种工具组合 Pattern + 12 条 Fallback 链路**：IDA 失败 → Ghidra/r2，Frida 检测 → frida-gadget 等
 - **21 个模板变量**：从启动锚定到渗透章节全可配置
 - **9 个工号 Persona**：资深研究员 / 研究员助理 / Web 渗透专家 / 红队专家 / 移动端专家 / IoT 专家 / 云原生专家 / AI 专家 / CrackMe 专家
@@ -84,24 +85,29 @@ powershell -ExecutionPolicy Bypass -File .\tools\prompt-tool.ps1
 
 ```
 git内容/
-├── prompts/                              # Prompt 模板
-│   ├── Claude-CTF-Reverse-Prompt.md      # Claude Code 版本（兼容，75KB · 14 章实战）
-│   ├── Codex-CTF-Reverse-Prompt.md       # Codex 版本（主推，152KB · 24模块 · 5阶段 · 22章实战 · 22节游戏外挂）
-│   ├── prompt-template.md                # 可配置模板（21 个模板变量）
-│   └── config.json                       # 配置文件（v2.5.0 · 14 章实战 + 11 大模块）
+├── AGENTS.md                              # 瘦核心入口（11KB · 5大类Signal路由）
+├── prompts/                               # Prompt 模板
+│   ├── Claude-CTF-Reverse-Prompt.md       # Claude Code 兼容版（10.5KB 瘦核心 · 工号 RE-7X-2024-CC）
+│   ├── Codex-CTF-Reverse-Prompt.md        # Codex 主推版（10.5KB 瘦核心 · KB 外置按需加载）
+│   ├── prompt-template.md                 # 可配置模板（无显式触发词 · 21 模板变量）
+│   ├── config.json                        # 配置文件（v2.6.0 · 5 大类 Signal 路由）
+│   └── kb/                                # 31 章 KB 外置（28 章实战 + 3 章补充）
+│       ├── 01_triage.md ~ 17_kb_quick_ref.md
+│       └── 18_web_pentest.md ~ 31_bloodhound_queries.md
 │
-├── tools/                                # Windows 管理工具
-│   ├── prompt-tool.bat                   # CMD 批处理脚本
-│   └── prompt-tool.ps1                   # PowerShell 增强版
+├── tools/                                 # Windows 管理工具
+│   ├── prompt-tool.bat                    # CMD 批处理脚本
+│   └── prompt-tool.ps1                    # PowerShell 增强版
 │
-├── docs/                                 # 文档
-│   ├── README_en.md                      # 英文文档
-│   └── README_zh.md                      # 中文文档
+├── docs/                                  # 详细文档 + 历史归档
+│   ├── README_en.md                       # 英文文档
+│   ├── README_zh.md                       # 中文文档
+│   └── Codex-CTF-Reverse-Prompt-FULL.md   # v2.5 完整版归档（156KB）
 │
-├── images/                               # 图片资源
+├── images/                                # 图片资源
 │   └── b2b81cd407357da51e7990223fe6cf9d.png  # QQ 群二维码
 │
-└── README.md                             # 主 README
+└── README.md                              # 主 README
 ```
 
 ---
